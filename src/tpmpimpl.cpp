@@ -1,3 +1,4 @@
+#include <iostream>
 #include <string>
 #include <sstream>
 #include <mathlink.h>
@@ -103,7 +104,7 @@ std::string quoted(std::string s)
 
 class Timer
 {
-  std::chrono::time_point<std::chrono::system_clock> ts;
+  std::chrono::high_resolution_clock::time_point ts;
 public:
   Timer()
   {

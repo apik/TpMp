@@ -1,5 +1,5 @@
-AC_INIT([Standard Model 3-loop running and 2-loop matching], [1.2.1], [pikelner@theor.jinr.ru],
-             [tpmp], [http://apik.github.io/mr/])
+AC_INIT([Topology Mapping], [0.0.1], [pikelner@theor.jinr.ru],
+             [TpMp], [http://apik.github.io/mr/])
 AC_PREREQ([2.59])
 AC_CONFIG_MACRO_DIR([m4])
 
