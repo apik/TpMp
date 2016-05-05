@@ -17,6 +17,37 @@ AC_CHECK_HEADERS([Eigen/Dense])
 AM_CONDITIONAL(HAVE_EIGEN, test "x$ac_cv_header_Eigen_Dense" != "xno")
 
 
+# yaml-cpp parser library
+AC_ARG_WITH([yaml-cpp], AS_HELP_STRING([--with-yaml-cpp], [indicate the position of the yaml-cpp installation (should contain both lib and include dirs]))
+AC_ARG_WITH([yamp-cpp-lib], AS_HELP_STRING([--with-yaml-cpp-lib], [indicate the position of the yaml-cpp lib directory (the one containing libyaml-cpp.so)]))
+AC_ARG_WITH([yaml-cpp-inc], AS_HELP_STRING([--with-yaml-cpp-inc], [indicate the position of the yaml-cpp include directory (the one *containing* the 'yaml-cpp' directory)]))
+YAMLCPP_CPPFLAGS=
+test "$with_yaml_cpp" && YAMLCPP_CPPFLAGS="-I$with_yaml_cpp/include"
+test "$with_yaml_cpp_inc" && YAMLCPP_CPPFLAGS="-I$with_yaml_cpp_inc"
+YAMLCPP_LDFLAGS=
+test "$with_yaml_cpp" && test -d $with_yaml_cpp/lib && YAMLCPP_LDFLAGS="-L$with_yaml_cpp/lib"
+test "$with_yaml_cpp" && test -d $with_yaml_cpp/lib64 && YAMLCPP_LDFLAGS="-L$with_yaml_cpp/lib64"
+test "$with_yaml_cpp_lib" && YAMLCPP_LDFLAGS="-L$with_yaml_cpp_lib"
+YAMLCPP_LIBS="-lyaml-cpp"
+oldCPPFLAGS=$CPPFLAGS
+oldLDFLAGS=$LDFLAGS
+CPPFLAGS="$AM_CPPFLAGS $CPPFLAGS $YAMLCPP_CPPFLAGS"
+LDFLAGS="$AM_LDFLAGS $LDFLAGS $YAMLCPP_LDFLAGS"
+AC_CHECK_HEADER([yaml-cpp/yaml.h], [], [AC_MSG_ERROR([yaml-cpp/yaml.h header not found.])])
+AC_CHECK_HEADER([yaml-cpp/node.h], [YAMLCPP_MAJOR_VERSION=3])
+AC_CHECK_HEADER([yaml-cpp/node/node.h], [YAMLCPP_MAJOR_VERSION=5])
+if test "x$YAMLCPP_MAJOR_VERSION" = x; then
+  AC_MSG_ERROR([yaml-cpp API version could not be determined])
+fi
+AC_MSG_NOTICE([yaml-cpp API version = $YAMLCPP_MAJOR_VERSION])
+AC_SUBST(YAMLCPP_MAJOR_VERSION)
+CPPFLAGS=$oldCPPFLAGS
+LDFLAGS=$oldLDFLAGS
+AC_SUBST(YAMLCPP_CPPFLAGS)
+AC_SUBST(YAMLCPP_LDFLAGS)
+AC_SUBST(YAMLCPP_LIBS)
+
+
 AC_ARG_WITH([mcc-path],
             [AS_HELP_STRING([--with-mcc-path],
             [build Mathematica MathLink interface @<:@default=auto@:>@. Set this to full path to directory containing mcc and mprep tools for example /Applications/Mathematica.app/SystemFiles/Links/MathLink/DeveloperKit/MacOSX-x86-64/CompilerAdditions])],
