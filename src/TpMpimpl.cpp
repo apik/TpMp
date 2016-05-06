@@ -44,63 +44,6 @@ std::string quoted(std::string s)
 
 
 
-// const QgrafSQL & get_QgrafSQL(const std::string& dbname)
-// {
-//   static std::map< std::string, size_t > directory;
-//   static std::vector< QgrafSQL > vdb;
-//   std::map< std::string, size_t >::iterator i = directory.find(dbname);
-//   if (i != directory.end())
-//     return vdb[i->second];
-//   else
-//     return directory.insert(std::make_pair(std::make_pair(mi,mu2), ZZ<MS>(mi,mu2))).first->second;
-// }
-
-
-
-
-// class customer
-// {
-//     ...
-//     public:
-//   int callback(int argc, char **argv, char **azColName);
-// };
-
-// static int c_callback(void *param, int argc, char **argv, char **azColName)
-// {
-//   customer* cust = reinterpret_cast<customer*>(param);
-//   return cust->callback(argc, argv, azColName);
-// }
-
-// char* customer::getCustomer(int id)
-// {
-//     ...
-//   rc = sqlite3_exec(db, sql, c_callback, this, &errMsg);
-//     ...
-//     }
-
-// int customer::callback(int argc, char **argv, char **azColName)
-// {
-//     ...
-// }
-
-
-
-// std::string sql_insert(int id, int loops)
-// {
-//   std::stringstream insertQuery;
-//   insertQuery << "INSERT INTO DIAGRAMS (ID,LOOPS,PROPS,LEGS,VERTS)"
-//     " VALUES (" 
-//               << id << ", " 
-//               << loops << ", " 
-//               << quoted("prpr") << ", " 
-//               << quoted("leggs") << ", " 
-//               << quoted("vertsxx") << ");";
-  
-//   return insertQuery.str();
-// }
-
-// const char* SQL = "CREATE TABLE IF NOT EXISTS foo(a,b,c); INSERT INTO FOO VALUES(1,2,3); INSERT INTO FOO SELECT * FROM FOO;";
-
 
 class Timer
 {
@@ -118,21 +61,53 @@ public:
   {
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - ts).count();
   }
-  int get_s()
+  float get_s()
   {
-    return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - ts).count();
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - ts).count()/1000.;
   }
 };
 
+// Print string in Mathematica
 void mprint(const std::string& s)
 {
   std::stringstream prntmsg;
-  prntmsg << "Print[\"" << s << "\"]";
+  prntmsg << "WriteString[\"stdout\",\"" << s << "\"]";
   std::string temp = prntmsg.str();
 
   MLEvaluateString(stdlink, const_cast<char*>(temp.c_str()));
 }
 
+
+// Print string with endline
+void mprintln(const std::string& s)
+{
+  std::stringstream prntmsg;
+  prntmsg << "WriteString[\"stdout\",\"" << s << "\n\"]";
+  std::string temp = prntmsg.str();
+
+  MLEvaluateString(stdlink, const_cast<char*>(temp.c_str()));
+}
+
+void message(const std::string& mtag)
+{
+  std::stringstream ss;
+  ss << "Message[" << mtag << "]";
+  MLEvaluateString(stdlink, const_cast<char*>(ss.str().c_str()));
+}
+
+void message(const std::string& mtag, const std::string& param1)
+{
+  std::stringstream ss;
+  ss << "Message[" << mtag << "," << param1 << "]";
+  MLEvaluateString(stdlink, const_cast<char*>(ss.str().c_str()));
+}
+
+void message(const std::string& mtag, const std::string& param1, const std::string& param2)
+{
+  std::stringstream ss;
+  ss << "Message[" << mtag << "," << param1 << "," << param2 << "]";
+  MLEvaluateString(stdlink, const_cast<char*>(ss.str().c_str()));
+}
 
 struct Prop
 {
@@ -385,9 +360,12 @@ public:
     return statusOK;
   }
 
+  QgrafSQL()
+  {
+  }
   QgrafSQL(const std::string& dbname, bool overwritedb)
   {
-    
+
     int flags = 0;
     if(overwritedb)
       flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
@@ -396,7 +374,7 @@ public:
     
     if( sqlite3_open_v2(dbname.c_str(), &dbPtr, flags, NULL) )
       {
-        mprint(sqlite3_errmsg(dbPtr));
+        mprintln(sqlite3_errmsg(dbPtr));
         statusOK = false;
       }
     db.reset(dbPtr, sqlite3_close);
@@ -411,7 +389,7 @@ public:
         if (sqlite3_exec(dbPtr, sql_create, 0, 0, &err))
           {
             fprintf(stderr, "Error SQL %sn", err);
-            mprint(err);
+            mprintln(err);
             sqlite3_free(err);
             return false;
           }
@@ -445,7 +423,7 @@ public:
     sqlite3_prepare(dbPtr, insertQuery.str().c_str(), insertQuery.str().size(), &insertStmt, NULL);
     // cout << "Stepping Insert Statement" << endl;
     if (sqlite3_step(insertStmt) != SQLITE_DONE) 
-      mprint("Didn't Insert Item!");
+      mprintln("Didn't Insert Item!");
     return true;
   }
 
@@ -552,22 +530,32 @@ struct DBFactory
   static std::map< std::string, size_t > directory;
   static std::vector< QgrafSQL > vdb;
 
-  static QgrafSQL& getDB(const std::string& dbname, size_t& num)
+  static bool getDB(const std::string& dbname, QgrafSQL& db, size_t& num)
   {
     std::map< std::string, size_t >::iterator i = directory.find(dbname);
     if (i != directory.end())
       {
         std::cout << " Found" <<std::endl;
         num = i->second + 1;
-        return vdb[i->second];
+        db  = vdb[i->second];
+        return true;
       }
     else
       {
         std::cout << " Not found" <<std::endl;
-        vdb.push_back(QgrafSQL(dbname,false));
-        directory[dbname] = vdb.size() - 1;
-        num = vdb.size();
-        return vdb.back();
+
+        if(boost::filesystem::exists( dbname))
+          {
+            vdb.push_back(QgrafSQL(dbname,false));
+            directory[dbname] = vdb.size() - 1;
+            num = vdb.size();
+            db  = vdb.back();
+            return true;
+          }
+        else
+          {
+            return false;
+          }
       }
   }
 
@@ -597,59 +585,97 @@ void LoadQGRAF(const unsigned char * str,const int len)
   boost::filesystem::path yaml_path( fname );
   boost::filesystem::path sql_path( yaml_path );
 
+  yaml_path.replace_extension( "yaml" );
   sql_path.replace_extension( "sqlite3" );
   
-  mprint(std::string("fname ") + sql_path.string());
+  mprintln(std::string("fname ") + sql_path.string());
   
   
   if(!boost::filesystem::exists(sql_path))
     {
-      
-      Timer tmr;
-      
-      std::vector<YAML::Node> diagrams = YAML::LoadAllFromFile(fname);
-      
-      std::stringstream s1;
-      s1 << "<-1-> Loaded " << diagrams .size() << " diagrams from file " << fname << " in " << tmr.get_ms() << " ms";
-      mprint(s1.str());
-      
-      
-      // Now dump all diagrams to SQL table
-      
-      tmr.reset();
-      // Open new DB
-      QgrafSQL qsql(sql_path.string(), true);
-      
-      // Create table
-      qsql.create();
-      
-      for(std::vector<YAML::Node>::const_iterator dit = diagrams.begin(); 
-          dit != diagrams.end(); ++dit)
+      // Check if YAML file exists
+      if(boost::filesystem::exists( yaml_path.string() ))
         {
-          DiagramRecord diagram_record(*dit);
-          qsql.insert(diagram_record);
+          Timer tmr;
+          
+          mprint("<-1-> Loading diagrams from file ");
+          mprint(yaml_path.string());
+          mprint(" ... ");
+          
+          std::vector<YAML::Node> diagrams = YAML::LoadAllFromFile(yaml_path.string());
+          
+          std::stringstream s1;
+          s1 << "loaded " << diagrams .size() << " diagrams in " << tmr.get_s() << " s\n";
+          mprint(s1.str());
+          
+          
+          // Now dump all diagrams to SQL table
+          
+          tmr.reset();
+          mprint("<-2-> Preparing SQL db ");
+          mprint(sql_path.string());
+          mprint(" ... ");
+          
+          // Open new DB
+          QgrafSQL qsql(sql_path.string(), true);
+          
+          // Create table
+          qsql.create();
+          
+          for(std::vector<YAML::Node>::const_iterator dit = diagrams.begin(); 
+              dit != diagrams.end(); ++dit)
+            {
+              DiagramRecord diagram_record(*dit);
+              qsql.insert(diagram_record);
+            }
+          
+          
+          
+          std::stringstream s2;
+          s2 << "prepared in " << tmr.get_s() << " s\n";
+          mprint(s2.str());
+          
+          // And return number of diagram generated by QGRAF
+          MLPutInteger(stdlink, diagrams.size());
         }
-      
-      
-      
-      std::stringstream s2;
-      s2 << "<-2-> Prepared SQL db " << sql_path.string() << " in " << tmr.get_ms() << " ms";
-      mprint(s2.str());
-      
-      // And return number of diagram generated by QGRAF
-      MLPutInteger(stdlink, diagrams.size());
+      else
+        {
+          message("LoadQGRAF::noinput", yaml_path.string());
+          
+          // And return number of diagram generated by QGRAF
+          MLPutInteger(stdlink, 0);
+        }
       
     }
   else
     {
-      std::stringstream s2;
-      s2 << "<-2-> SQL db " << sql_path.string() << " exists";
-      mprint(s2.str());
+      message("LoadQGRAF::dbexists", sql_path.string());
       
       // And return number of diagram generated by QGRAF
       MLPutInteger(stdlink, 0);
-
     }
+}
+
+
+void TestCMD(const unsigned char * str,const int len)
+{
+
+  std::stringstream prntmsg;
+  prntmsg << "WriteString[\"stdout\", \"First part of the result:\"]";
+  std::string temp = prntmsg.str();
+  
+  MLEvaluateString(stdlink, const_cast<char*>(temp.c_str()));
+
+
+
+  std::stringstream prntmsg2;
+  prntmsg2 << "WriteString[\"stdout\", \"... Second part of the result:\n\"]";
+  temp = prntmsg2.str();
+  
+  MLEvaluateString(stdlink, const_cast<char*>(temp.c_str()));
+  
+  
+  MLPutInteger(stdlink, 0);
 }
 
 // File name should be str.sqlite3
@@ -664,22 +690,29 @@ void LoadDB(const unsigned char * str,const int len)
   // QgrafSQL qsql(sql_path.string(), false);
   
   size_t dbnum = 0;
-  QgrafSQL qsql = DBFactory::getDB(sql_path.string(), dbnum);
-
-  if(qsql.ok())
+  QgrafSQL qsql;
+  if(DBFactory::getDB(sql_path.string(), qsql, dbnum))
     {
-      std::stringstream s1;
-      s1 << "<-1-> Open SQL db " << sql_path.string() << " into slot number " << dbnum;
-      mprint(s1.str());
+      
+      if(qsql.ok())
+        {
+          std::stringstream s1;
+          s1 << "<-1-> Open SQL db " << sql_path.string() << " into slot number " << dbnum;
+          mprintln(s1.str());
+        }
+      else
+        {
+          std::stringstream s1;
+          s1 << "ERROR opening  SQL db " << sql_path.string();
+          mprintln(s1.str());
+        }
+      MLPutInteger(stdlink, dbnum);
     }
   else
     {
-      std::stringstream s1;
-      s1 << "ERROR opening  SQL db " << sql_path.string();
-      mprint(s1.str());
+      message("LoadDB::noinput", sql_path.string());
+      MLPutSymbol(stdlink,"Null");
     }
-  
-  MLPutInteger(stdlink, dbnum);
   
 }
 
@@ -753,7 +786,7 @@ void GetDia(int n, int dbnum)
     {
       std::stringstream s;
       s << "ERROR: SQL DB in slot " << dbnum << " not loaded";
-      mprint(s.str());
+      mprintln(s.str());
       MLPutSymbol(stdlink, "Null");
     }
 }
@@ -797,7 +830,7 @@ void GetDiaGraph(int n, int dbnum)
     {
       std::stringstream s;
       s << "ERROR: SQL DB in slot " << dbnum << " not loaded";
-      mprint(s.str());
+      mprintln(s.str());
       MLPutSymbol(stdlink, "Null");
     }
 }

@@ -25,7 +25,7 @@ TpMp_LDADD = -L$(MATHROOT)$(ALTMATHPATH) ${LDMATH} -lyaml-cpp -lsqlite3 -lboost_
 # $(OPENMP_CFLAGS) $(MR_LIBS) -L$(MATHROOT)$(ALTMATHPATH) ${LDMATH} -L$(top_srcdir)/mr -lmr -L$(top_srcdir)/tsil-1.3 -ltsil -lm
 
 src/TpMp.cpp: src/TpMp.tm
-	$(MPREP) $? -o $@
+	$(MPREP) $^ -o $@
 
 # EXTRA_DIST = mr.tm mr.m
 

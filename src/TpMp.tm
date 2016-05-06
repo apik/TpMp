@@ -20,12 +20,20 @@
 :Evaluate:  GetDia::usage     = "Load dia from DB."
 :Evaluate:  GetDiaGraph::usage = "Get graph info for diagram."
 :Evaluate:  Draw::usage  = "Plot graph."
+:Evaluate:  TestCMD::usage  = "Test dummy command."
 
 :Evaluate:  F::usage  = "Fermionfield."
 :Evaluate:  S::usage  = "Scalar field."
 :Evaluate:  V::usage  = "Vector field."
 :Evaluate:  C::usage  = "Ghost field."
 :Evaluate:  A::usage  = "Aux field."
+
+
+// Error messages
+:Evaluate:  LoadQGRAF::dbexists = "Error: SQL db with name `1` already exists.";
+:Evaluate:  LoadQGRAF::noinput  = "Error: Input YAML file `1` not found.";
+
+:Evaluate:  LoadDB::noinput  = "Error: Input SQL file `1` not found.";
 
 
 :Evaluate:  Begin["`Private`"];
@@ -93,6 +101,14 @@
 :Pattern: GetDiaGraph[n_Integer,dbnum_Integer:1]
 :Arguments: {n,dbnum}
 :ArgumentTypes: {Integer,Integer}
+:ReturnType: Manual
+:End:
+
+:Begin:
+:Function: TestCMD
+:Pattern: TestCMD[str_]
+:Arguments: {str}
+:ArgumentTypes: {ByteString}
 :ReturnType: Manual
 :End:
 
