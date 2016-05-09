@@ -575,11 +575,15 @@ public:
   // ...
   bool findField(const std::string& f, std::map<size_t, std::set<size_t> >& fm)
   {
+    mprint("Find field ");
+    mprint(f);
+    mprint("\n");
+    
     std::stringstream likeQuery;
     likeQuery << "SELECT ID,PROPS FROM DIAGRAMS WHERE PROPS LIKE "
-              << "\'%["
+              << "\"%["
               << f 
-              << "]%\'";
+              << "]%\"";
     sqlite3_stmt *stmt;
     int rc = sqlite3_prepare_v2(dbPtr, likeQuery.str().c_str(), -1, &stmt, NULL);
     if (rc != SQLITE_OK)
@@ -1061,6 +1065,9 @@ void WithField(const unsigned char * str,const int len, int dbnum)
       
       std::string field;
       field.append(reinterpret_cast<const char*>(str));
+
+      mprint("Start field ");
+      mprintln(field);
       
       std::map<size_t, std::set<size_t> > fm;
       if(qsql.findField(field, fm))
@@ -1103,7 +1110,7 @@ void WithFieldType(const unsigned char * str,const int len, int dbnum)
       QgrafSQL qsql = DBFactory::getDBbyNum(dbnum);
       
       std::string fieldtype;
-      fieldtype.append(reinterpret_cast<const char*>(str));
+      fieldtype.append(reinterpret_cast<const char*>(str),len);
       
       std::map<size_t, std::set<size_t> > fm;
       if(qsql.findFieldType(fieldtype, fm))
