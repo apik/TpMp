@@ -877,6 +877,14 @@ void LoadQGRAF(const unsigned char * str,const int len)
 }
 
 
+void Echo(const unsigned char * str,const int len)
+{
+  std::string s;
+  s.append(reinterpret_cast<const char*>(str));
+    
+  MLPutString(stdlink, const_cast<char*>(s.c_str()));
+}
+
 void TestCMD(const unsigned char * str,const int len)
 {
 
@@ -949,7 +957,7 @@ void GetDia(int n, int dbnum)
       DiagramRecord dr;
       if(qsql.select(n, dr))
         {
-          MLPutFunction(stdlink, "List", 5);
+          MLPutFunction(stdlink, "Dia", 5);
           // 
           MLPutFunction(stdlink, "Rule", 2);
           MLPutSymbol  (stdlink, "id");

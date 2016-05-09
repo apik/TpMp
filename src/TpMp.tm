@@ -23,7 +23,11 @@
 :Evaluate:  WithField::usage  = "Find diagrams with field."
 :Evaluate:  WithFieldType::usage  = "Find diagrams with specified field type (F,M,S,V,C,A)."
 
+:Evaluate:  Echo::usage  = "Echo command to see errors in MathLink string input interpretation command."
+
 :Evaluate:  TestCMD::usage  = "Test dummy command."
+
+:Evaluate:  Dia::usage  = "Diagram container."
 
 :Evaluate:  F::usage  = "Fermion field."
 :Evaluate:  M::usage  = "Majorana fermion field."
@@ -45,7 +49,7 @@
 // Mathematica part
 
 
-:Evaluate: Draw[ll_] :=     
+:Evaluate: Draw[Dia[_,_,_,ll_,_]] :=     
     GraphPlot[ll, DirectedEdges -> True, MultiedgeStyle -> 0.2, 
               ImagePadding -> 0, EdgeRenderingFunction -> (DressEdge[#1, #3] &),
               VertexLabeling -> False, Method -> "SpringEmbedding"];
@@ -55,27 +59,27 @@
            Switch[Head[l],
                   C, {Red, Dotted, 
                       Arrow[e], {Line[e], 
-                                      Inset[l[[1]], Mean[e], Automatic, Automatic, First[e] - Last[e], 
+                                      Inset[l[[1]], Mean[e], Automatic, Automatic, Automatic,
                                             Background -> White]}},
                   F, {Blue, Thick, 
                       Arrow[e], {Line[e], 
-                                      Inset[l[[1]], Mean[e], Automatic, Automatic, First[e] - Last[e], 
+                                      Inset[l[[1]], Mean[e], Automatic, Automatic, Automatic,
                                             Background -> White]}},
                   M, {Gray, Thick, 
                       Arrow[e], {Line[e], 
-                                      Inset[l[[1]], Mean[e], Automatic, Automatic, First[e] - Last[e], 
+                                      Inset[l[[1]], Mean[e], Automatic, Automatic, Automatic,
                                             Background -> White]}},
                   S, {AbsoluteThickness[2], Dashed, Red, 
                       Arrow[e], {Line[e], 
-                                      Inset[l[[1]], Mean[e], Automatic, Automatic, First[e] - Last[e], 
+                                      Inset[l[[1]], Mean[e], Automatic, Automatic, Automatic, 
                                             Background -> White]}},
                   V, {Green, DotDashed, 
                       Arrow[e], {Line[e], 
-                                      Inset[l[[1]], Mean[e], Automatic, Automatic, First[e] - Last[e], 
+                                      Inset[l[[1]], Mean[e], Automatic, Automatic, Automatic, 
                                             Background -> White]}},
                   A, {Black, DotDashed, 
                       Arrow[e], {Line[e], 
-                                      Inset[l[[1]], Mean[e], Automatic, Automatic, First[e] - Last[e], 
+                                      Inset[l[[1]], Mean[e], Automatic, Automatic, Automatic,
                                             Background -> White]}}]
           ];
 
@@ -125,6 +129,14 @@
 :Pattern: WithFieldType[fieldtype_,dbnum_Integer:1]
 :Arguments: {fieldtype,dbnum}
 :ArgumentTypes: {ByteString,Integer}
+:ReturnType: Manual
+:End:
+
+:Begin:
+:Function: Echo
+:Pattern: Echo[str_]
+:Arguments: {str}
+:ArgumentTypes: {ByteString}
 :ReturnType: Manual
 :End:
 
