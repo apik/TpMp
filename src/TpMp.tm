@@ -20,6 +20,8 @@
 :Evaluate:  GetDia::usage     = "Load dia from DB."
 :Evaluate:  GetDiaGraph::usage = "Get graph info for diagram."
 :Evaluate:  Draw::usage  = "Plot graph."
+:Evaluate:  WithField::usage  = "Find diagrams with field."
+
 :Evaluate:  TestCMD::usage  = "Test dummy command."
 
 :Evaluate:  F::usage  = "Fermionfield."
@@ -101,6 +103,14 @@
 :Pattern: GetDiaGraph[n_Integer,dbnum_Integer:1]
 :Arguments: {n,dbnum}
 :ArgumentTypes: {Integer,Integer}
+:ReturnType: Manual
+:End:
+
+:Begin:
+:Function: WithField
+:Pattern: WithField[field_,dbnum_Integer:1]
+:Arguments: {field,dbnum}
+:ArgumentTypes: {ByteString,Integer}
 :ReturnType: Manual
 :End:
 

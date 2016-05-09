@@ -345,6 +345,25 @@ static int callback(void *data, int argc, char **argv, char **azColName){
   return 0;
 }
 
+// Call back with map
+static int findSubstrings(void *data, int argc, char **argv, char **azColName)
+{
+
+  typedef std::map<size_t, std::vector<size_t> > fMap;
+  int i;
+  // fprintf(stderr, "%s: ", (const char*)data);
+  
+  fMap * mp = static_cast<fMap *>(data);
+  
+  // fMap->
+  for(i=0; i<argc; i++)
+    {
+      printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+    }
+  printf("\n");
+  return 0;
+}
+
 
 
 
@@ -449,6 +468,32 @@ public:
     }
   }
 
+  void like()
+  {
+    char *zErrMsg = 0;
+    int rc;
+    // char *sql;
+    const char* data = "Callback function called";
+    
+    /* Create SQL statement */
+    // sql = "SELECT * from DIAGRAMS";
+    const char* sql = "SELECT PROPS FROM DIAGRAMS WHERE PROPS LIKE \'%[gt]%\'";
+    
+
+    /* Execute SQL statement */
+    rc = sqlite3_exec(dbPtr, sql, callback, (void*)data, &zErrMsg);
+    if( rc != SQLITE_OK )
+      {
+        fprintf(stderr, "SQL error: %s\n", zErrMsg);
+        sqlite3_free(zErrMsg);
+      }
+    else
+      {
+        fprintf(stdout, "Operation done successfully\n");
+      }
+  }
+
+
   void find(size_t dianum)
   {
     char *zErrMsg = 0;
@@ -465,12 +510,15 @@ public:
     
     /* Execute SQL statement */
     rc = sqlite3_exec(dbPtr, ss.str().c_str(), callback, (void*)data, &zErrMsg);
-    if( rc != SQLITE_OK ){
-      fprintf(stderr, "SQL error: %s\n", zErrMsg);
-      sqlite3_free(zErrMsg);
-    }else{
-      fprintf(stdout, "Operation done successfully\n");
-    }
+    if( rc != SQLITE_OK )
+      {
+        fprintf(stderr, "SQL error: %s\n", zErrMsg);
+        sqlite3_free(zErrMsg);
+      }
+    else
+      {
+        fprintf(stdout, "Operation done successfully\n");
+      }
   }
 
   bool select(int id, DiagramRecord& dr)
@@ -518,6 +566,106 @@ public:
     
     sqlite3_finalize(stmt);
     return true;
+  }
+
+  // return map of fields (f) multiplicities (fm)
+  // 1 -> {1,3,5,...}
+  // 2 -> {}
+  // 3 -> {2,4,...}
+  // ...
+  bool findField(const std::string& f, std::map<size_t, std::set<size_t> >& fm)
+  {
+    std::stringstream likeQuery;
+    likeQuery << "SELECT ID,PROPS FROM DIAGRAMS WHERE PROPS LIKE "
+              << "\'%["
+              << f 
+              << "]%\'";
+    sqlite3_stmt *stmt;
+    int rc = sqlite3_prepare_v2(dbPtr, likeQuery.str().c_str(), -1, &stmt, NULL);
+    if (rc != SQLITE_OK)
+      throw std::string(sqlite3_errmsg(dbPtr));
+    
+    // Field substring to find
+    std::stringstream ftf;
+    ftf << "[" << f << "]";
+
+    do
+      {
+        rc = sqlite3_step(stmt);
+        if (rc != SQLITE_ROW && rc != SQLITE_DONE) 
+          {
+            std::string errmsg(sqlite3_errmsg(dbPtr));
+            sqlite3_finalize(stmt);
+            throw errmsg;
+          }
+
+        if(rc != SQLITE_DONE)   // When there is nothing to read
+          {
+            int id = sqlite3_column_int(stmt, 0);
+            std::string propstr = (reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1)));
+            
+            int field_occurrences = 0;
+            std::string::size_type start = 0;
+            
+            while ((start = propstr.find(ftf.str(), start)) != std::string::npos) 
+              {
+                ++field_occurrences;
+                start += ftf.str().length(); 
+              }
+            
+            
+            std::cout << "ID   :  " << sqlite3_column_int(stmt, 0) << std::endl;
+            std::cout << "PROPS:  " << sqlite3_column_text(stmt, 1) << std::endl;
+            std::cout << "MULT :  " << field_occurrences << std::endl;
+            
+            std::map<size_t, std::set<size_t> >::iterator vit = fm.find(field_occurrences);
+            if (vit != fm.end())
+              vit->second.insert(id);
+            else
+              {
+                std::set<size_t> mult;
+                mult.insert(id);
+                fm[field_occurrences] = mult;
+              }
+          }
+      }
+    while(rc == SQLITE_ROW );   // When we have ROW to read
+
+    if(rc == SQLITE_DONE) 
+      {
+        std::cout << "In done" << std::endl;
+        sqlite3_finalize(stmt);
+        return true;
+      }
+    else
+      return false;
+  }
+
+  bool findField2(const std::string& f, std::map<size_t, std::vector<size_t> >& fm)
+  {
+    std::stringstream likeQuery;
+    likeQuery << "SELECT PROPS FROM DIAGRAMS WHERE PROPS LIKE "
+              << "\'%["
+              << f 
+              << "]%\'";
+
+
+    char *zErrMsg = 0;
+    int rc;
+    // char *sql;
+    const char* data = "Callback function called";
+    
+    std::map<size_t, std::vector<size_t> > rr;
+
+    /* Execute SQL statement */
+    rc = sqlite3_exec(dbPtr, likeQuery.str().c_str(), findSubstrings, reinterpret_cast<void*>(&rr), &zErrMsg);
+    if( rc != SQLITE_OK ){
+      fprintf(stderr, "SQL error: %s\n", zErrMsg);
+      sqlite3_free(zErrMsg);
+    }else{
+      fprintf(stdout, "Operation done successfully\n");
+    }
+
   }
   
 };
@@ -836,9 +984,50 @@ void GetDiaGraph(int n, int dbnum)
     }
 }
 
+void WithField(const unsigned char * str,const int len, int dbnum)
+{
+  if(dbnum <= DBFactory::size())
+    {
+      
+      QgrafSQL qsql = DBFactory::getDBbyNum(dbnum);
+      
+      std::string field;
+      field.append(reinterpret_cast<const char*>(str));
+      
+      std::map<size_t, std::set<size_t> > fm;
+      if(qsql.findField(field, fm))
+        {
+          MLPutFunction(stdlink, "List", fm.size());
+          // 
+          for(std::map<size_t, std::set<size_t> >::const_iterator mulit = fm.begin(); mulit != fm.end(); ++ mulit)
+            {
+              MLPutFunction(stdlink, "Rule", 2);
+              // 
+              MLPutFunction(stdlink, "Field", 2);
+              MLPutSymbol  (stdlink, field.c_str());
+              MLPutInteger (stdlink, mulit->first);
+              // 
+              MLPutFunction(stdlink, "List", mulit->second.size());
+              for(std::set<size_t>::const_iterator idit = mulit->second.begin(); idit != mulit->second.end(); ++idit)
+                MLPutInteger (stdlink, *idit);
+            }
+        }
+      else
+        {
+          std::cout << "No diagrams fith field " << field << " found" << std::endl;
+          MLPutSymbol(stdlink, "Null");
+        }
+    }
+  else
+    {
+      std::stringstream s;
+      s << "ERROR: SQL DB in slot " << dbnum << " not loaded";
+      mprintln(s.str());
+      MLPutSymbol(stdlink, "Null");
+    }
 
+}
 
-  
 
 int main(int argc, char* argv[]) 
 {
