@@ -21,10 +21,12 @@
 :Evaluate:  GetDiaGraph::usage = "Get graph info for diagram."
 :Evaluate:  Draw::usage  = "Plot graph."
 :Evaluate:  WithField::usage  = "Find diagrams with field."
+:Evaluate:  WithFieldType::usage  = "Find diagrams with specified field type (F,M,S,V,C,A)."
 
 :Evaluate:  TestCMD::usage  = "Test dummy command."
 
-:Evaluate:  F::usage  = "Fermionfield."
+:Evaluate:  F::usage  = "Fermion field."
+:Evaluate:  M::usage  = "Majorana fermion field."
 :Evaluate:  S::usage  = "Scalar field."
 :Evaluate:  V::usage  = "Vector field."
 :Evaluate:  C::usage  = "Ghost field."
@@ -56,6 +58,10 @@
                                       Inset[l[[1]], Mean[e], Automatic, Automatic, First[e] - Last[e], 
                                             Background -> White]}},
                   F, {Blue, Thick, 
+                      Arrow[e], {Line[e], 
+                                      Inset[l[[1]], Mean[e], Automatic, Automatic, First[e] - Last[e], 
+                                            Background -> White]}},
+                  M, {Gray, Thick, 
                       Arrow[e], {Line[e], 
                                       Inset[l[[1]], Mean[e], Automatic, Automatic, First[e] - Last[e], 
                                             Background -> White]}},
@@ -110,6 +116,14 @@
 :Function: WithField
 :Pattern: WithField[field_,dbnum_Integer:1]
 :Arguments: {field,dbnum}
+:ArgumentTypes: {ByteString,Integer}
+:ReturnType: Manual
+:End:
+        
+:Begin:
+:Function: WithFieldType
+:Pattern: WithFieldType[fieldtype_,dbnum_Integer:1]
+:Arguments: {fieldtype,dbnum}
 :ArgumentTypes: {ByteString,Integer}
 :ReturnType: Manual
 :End:

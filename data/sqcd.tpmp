@@ -1,0 +1,24 @@
+
+* propagators
+ [ q, Q, - ; type='F']
+
+ [ g, g, + ; type='V']
+
+ [ gg, GG, - ; type='C']
+
+ [ gt, gt, - ; type='M']
+
+ [ qt, Qt, + ; type='S']
+
+* vertices
+
+* QCD
+ [ Q, q, g ]
+ [ g, g, g ]
+ [ g, g, g, g ]
+ [ GG, gg, g ]
+
+* SUSY
+ [ gt, gt, g ]
+ [ q, gt, Qt ]
+
