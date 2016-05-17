@@ -22,6 +22,7 @@
 :Evaluate:  Draw::usage  = "Plot graph."
 :Evaluate:  WithField::usage  = "Find diagrams with field."
 :Evaluate:  WithFieldType::usage  = "Find diagrams with specified field type (F,M,S,V,C,A)."
+:Evaluate:  FermionFlow::usage    = "Get fermion flow information"
 
 :Evaluate:  Echo::usage  = "Echo command to see errors in MathLink string input interpretation command."
 
@@ -129,6 +130,14 @@
 :Pattern: WithFieldType[fieldtype_,dbnum_Integer:1]
 :Arguments: {fieldtype,dbnum}
 :ArgumentTypes: {ByteString,Integer}
+:ReturnType: Manual
+:End:
+
+:Begin:
+:Function: FermionFlow
+:Pattern: FermionFlow[n_Integer,dbnum_Integer:1]
+:Arguments: {n,dbnum}
+:ArgumentTypes: {Integer,Integer}
 :ReturnType: Manual
 :End:
 

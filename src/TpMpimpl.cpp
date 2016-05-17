@@ -12,7 +12,13 @@
 #include <sqlite3.h>
 
 #include <boost/filesystem.hpp>
+
+#include "types.hpp"
+#include "graph.hpp"
+
 using namespace boost::filesystem;
+
+
 
 const bool overwrite_db = true;
 
@@ -109,229 +115,6 @@ void message(const std::string& mtag, const std::string& param1, const std::stri
   MLEvaluateString(stdlink, const_cast<char*>(ss.str().c_str()));
 }
 
-struct Prop
-{
-  int id;
-  int u;
-  int v;
-  std::string field;
-  std::string type;
-  std::string mom;
-  
-  // Serialize to string <TYPE>[<FIELD>](<U>,<V>,<MOM>)
-  std::string toStr() const
-  {
-    std::stringstream s;
-    s << type << "[" << field << "](" << u << "," << v << "," << mom << ")";
-    return s.str();
-  }
-
-  void fromStr(size_t nid, std::string s)
-  {
-    id = nid;
-    size_t start = 0;
-    size_t end   = s.find('['); 
-    std::cout << "TYPE = " << s.substr(start,end) << std::endl;
-    type = s.substr(start,end - start);
-
-    start = end + 1;
-    end = s.find(']', start);
-    std::cout << "(s,e) = " << start << "," << end << " FIELD = " << s.substr(start,end - start) << std::endl;
-    field = s.substr(start,end - start);
-
-    start = end + 2;            // ](
-    end = s.find(',', start);
-    std::cout << "u = " << s.substr(start,end - start) << std::endl;
-    u = atoi(s.substr(start,end - start).c_str());
-
-    start = end + 1;            // ](
-    end = s.find(',', start);
-    std::cout << "v = " << s.substr(start,end - start) << std::endl;
-    v = atoi(s.substr(start,end - start).c_str());
-
-    start = end + 1;            // ](
-    end = s.find(')', start);
-    std::cout << "mom = " << s.substr(start,end - start) << std::endl;
-    mom = s.substr(start,end - start);
-
-  }
-
-};
-
-struct Leg
-{
-  int id;
-  int u;
-  int v;
-  std::string field;
-  std::string type;
-  std::string mom;
-  
-  // Serialize to string <TYPE>[<FIELD>](<U>,<V>,<MOM>)
-  std::string toStr() const
-  {
-    std::stringstream s;
-    s << type << "[" << field << "](" << u << "," << v << "," << mom << ")";
-    return s.str();
-  }
-
-  void fromStr(size_t nid, std::string s)
-  {
-    id = nid;
-    size_t start = 0;
-    size_t end   = s.find('['); 
-    std::cout << "TYPE = " << s.substr(start,end) << std::endl;
-    type = s.substr(start,end - start);
-
-    start = end + 1;
-    end = s.find(']', start);
-    std::cout << "(s,e) = " << start << "," << end << " FIELD = " << s.substr(start,end - start) << std::endl;
-    field = s.substr(start,end - start);
-
-    start = end + 2;            // ](
-    end = s.find(',', start);
-    std::cout << "u = " << s.substr(start,end - start) << std::endl;
-    u = atoi(s.substr(start,end - start).c_str());
-
-    start = end + 1;            // ](
-    end = s.find(',', start);
-    std::cout << "v = " << s.substr(start,end - start) << std::endl;
-    v = atoi(s.substr(start,end - start).c_str());
-
-    start = end + 1;            // ](
-    end = s.find(')', start);
-    std::cout << "mom = " << s.substr(start,end - start) << std::endl;
-    mom = s.substr(start,end - start);
-
-  }
-
-};
-
-struct Vert
-{
-  int id;
-  int u;
-  int v;
-  std::string field;
-  int type;
-  std::string mom;
-};
-
-
-class DiagramRecord
-{
-  
-public:
-  int id;
-  int loops;
-  int factor;
-  int sign;
-  std::vector<Prop> props;
-  std::vector<Leg>  legs;
-  DiagramRecord()
-  {
-  }
-
-  DiagramRecord(YAML::Node n)
-  {
-    id     = n.begin()->first.as<int>();
-    loops  = n.begin()->second["loops"].as<int>();
-    factor = n.begin()->second["factor"].as<int>();
-    
-    // sign   = n.second["sign"].as<int>();
-
-    // Filling propagators array
-    std::cout << n.begin()->second["props"] << std::endl;
-    for (YAML::const_iterator it = n.begin()->second["props"].begin(); it != n.begin()->second["props"].end(); ++it) 
-      {
-        Prop p;
-        p.id     = it->first.as<int>();
-        p.u      = it->second["u"].as<int>();
-        p.v      = it->second["v"].as<int>();
-        p.field  = it->second["f"].as<std::string>();
-        p.type   = it->second["t"].as<std::string>();
-        p.mom    = it->second["m"].as<std::string>();
-
-        props.push_back(p);
-      }
-
-    // Filling legs array
-    std::cout << n.begin()->second["legs"] << std::endl;
-    for (YAML::const_iterator it = n.begin()->second["legs"].begin(); it != n.begin()->second["legs"].end(); ++it) 
-      {
-        Leg l;
-        l.id     = it->first.as<int>();
-        l.u      = it->second["u"].as<int>();
-        l.v      = it->second["v"].as<int>();
-        l.field  = it->second["f"].as<std::string>();
-        l.type   = it->second["t"].as<std::string>();
-        l.mom    = it->second["m"].as<std::string>();
-
-        legs.push_back(l);
-      }
-
-    std::cout << "We add " << props.size() << " props" << std::endl;
-  }
-
-  std::string propStr() const
-  {
-    std::stringstream s;
-    for(std::vector<Prop>::const_iterator pi = props.begin(); pi != props.end(); ++pi)
-        s << pi->toStr() << ";";
-    return s.str();
-  }
-
-  void propStr(const std::string& s)
-  {
-    std::cout << "Reconstructing props from " << s << std::endl;
-
-    size_t start = 0;
-    size_t end = s.find(';');
-    while (end != std::string::npos)
-    {
-        std::cout << s.substr(start, end - start) << std::endl;
-
-        Prop p;
-        p.fromStr(props.size() + 1, s.substr(start, end - start));
-        props.push_back(p);
-        
-        start = end + 1;
-        end = s.find(';', start);
-    }
-
-    std::cout << "REMINDER  " << s.substr(start, end) << std::endl;;        
-  }
-
-  std::string legStr() const
-  {
-    std::stringstream s;
-    for(std::vector<Leg>::const_iterator li = legs.begin(); li != legs.end(); ++li)
-      s << li->toStr() << ";";
-    return s.str();
-  }
-
-  void legStr(const std::string& s)
-  {
-    std::cout << "Reconstructing props from " << s << std::endl;
-
-    size_t start = 0;
-    size_t end = s.find(';');
-    while (end != std::string::npos)
-    {
-        std::cout << s.substr(start, end - start) << std::endl;
-
-        Leg l;
-        l.fromStr(legs.size() + 1, s.substr(start, end - start));
-        legs.push_back(l);
-        
-        start = end + 1;
-        end = s.find(';', start);
-    }
-
-    std::cout << "REMINDER  " << s.substr(start, end) << std::endl;;        
-  }
-
-};
 
 
 
@@ -1150,6 +933,42 @@ void WithFieldType(const unsigned char * str,const int len, int dbnum)
       MLPutSymbol(stdlink, "Null");
     }
 
+}
+
+
+void FermionFlow(int n, int dbnum)
+{
+
+  if(dbnum <= DBFactory::size())
+    {
+      
+      QgrafSQL qsql = DBFactory::getDBbyNum(dbnum);
+      
+      // qsql.find(n);
+      DiagramRecord dr;
+      if(qsql.select(n, dr))
+        {
+
+          FermionGraph fg(dr);
+          
+          MLPutFunction(stdlink, "List", 2);
+          MLPutInteger (stdlink, fg.open());
+          MLPutInteger (stdlink, fg.closed());
+        }
+      else
+        {
+          std::cout << "Diagram not found in DB" << std::endl;
+          MLPutSymbol(stdlink, "Null");
+        }
+    }
+  else
+    {
+      std::stringstream s;
+      s << "ERROR: SQL DB in slot " << dbnum << " not loaded";
+      mprintln(s.str());
+      MLPutSymbol(stdlink, "Null");
+    }
+        
 }
 
 
