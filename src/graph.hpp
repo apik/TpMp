@@ -35,7 +35,7 @@ public:
   FermionGraph(const DiagramRecord& dr)
   {
     
-    size_t v_idx_shift = dr.legs.size(); // Negative vertex index shift by number of eternal legs
+    // size_t v_idx_shift = dr.legs.size(); // Negative vertex index shift by number of eternal legs
     for(std::vector<Prop>::const_iterator pi = dr.props.begin(); pi != dr.props.end(); ++pi)
       {
         // Add only Dirac and Majorana fermion edges
