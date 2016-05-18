@@ -202,8 +202,8 @@ public:
       return false;
   }
 
-
-  bool insert(const DiagramRecord& dia)
+private:
+  bool insertSingleDia(const DiagramRecord& dia)
   {
     sqlite3_stmt *insertStmt;
     // cout << "Creating Insert Statement" << endl;
@@ -226,6 +226,25 @@ public:
     // cout << "Stepping Insert Statement" << endl;
     if (sqlite3_step(insertStmt) != SQLITE_DONE) 
       mprintln("Didn't Insert Item!");
+    return true;
+  }
+public:
+
+  bool insert(const std::vector<YAML::Node>& diagrams)
+  {
+    
+    sqlite3_exec(dbPtr, "BEGIN TRANSACTION;", NULL, NULL, NULL);
+
+    
+    for(std::vector<YAML::Node>::const_iterator dit = diagrams.begin(); 
+        dit != diagrams.end(); ++dit)
+      {
+        DiagramRecord diagram_record(*dit);
+        if(!insertSingleDia(diagram_record)) return false;
+      }
+
+    sqlite3_exec(dbPtr, "END TRANSACTION;", NULL, NULL, NULL);
+
     return true;
   }
 
@@ -625,12 +644,14 @@ void LoadQGRAF(const unsigned char * str,const int len)
           // Create table
           qsql.create();
           
-          for(std::vector<YAML::Node>::const_iterator dit = diagrams.begin(); 
-              dit != diagrams.end(); ++dit)
-            {
-              DiagramRecord diagram_record(*dit);
-              qsql.insert(diagram_record);
-            }
+          qsql.insert(diagrams);
+
+          // for(std::vector<YAML::Node>::const_iterator dit = diagrams.begin(); 
+          //     dit != diagrams.end(); ++dit)
+          //   {
+          //     DiagramRecord diagram_record(*dit);
+          //     qsql.insert(diagram_record);
+          //   }
           
           
           

@@ -15,7 +15,7 @@ EX_CFLAGS =  $(TPMP_CFLAGS) -I$(MATHROOT)
 
 noinst_PROGRAMS = TpMp
 
-TpMp_SOURCES =  TpMpimpl.cpp graph.hpp graph.cpp types.hpp types.cpp
+TpMp_SOURCES =  TpMpmain.cpp graph.hpp graph.cpp types.hpp types.cpp
 
 nodist_TpMp_SOURCES = TpMp.cpp
 BUILT_SOURCES = TpMp.cpp
