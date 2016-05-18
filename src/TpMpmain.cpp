@@ -203,6 +203,7 @@ public:
   }
 
 private:
+
   bool insertSingleDia(const DiagramRecord& dia)
   {
     sqlite3_stmt *insertStmt;
@@ -228,19 +229,69 @@ private:
       mprintln("Didn't Insert Item!");
     return true;
   }
+
+  // stmt - compiled SQL request
+  bool insertSingleDiaBind(const DiagramRecord& dia, sqlite3_stmt *stmt)
+  {
+    
+    int rc = sqlite3_bind_int(stmt, 1, dia.id); 
+    rc = sqlite3_bind_int(stmt, 2, dia.loops); 
+    rc = sqlite3_bind_int(stmt, 3, dia.props.size()); 
+    rc = sqlite3_bind_int(stmt, 4, dia.factor); 
+    rc = sqlite3_bind_text(stmt, 5, dia.propStr().c_str(), -1, SQLITE_TRANSIENT); 
+    rc = sqlite3_bind_text(stmt, 6, dia.legStr().c_str(), -1, SQLITE_TRANSIENT); 
+    rc = sqlite3_bind_text(stmt, 7, "vertsxx", -1, SQLITE_TRANSIENT); 
+
+
+    sqlite3_step(stmt);
+    
+    sqlite3_clear_bindings(stmt);
+    sqlite3_reset(stmt);
+
+    // sqlite3_stmt *insertStmt;
+    // // cout << "Creating Insert Statement" << endl;
+    
+    
+    // std::stringstream insertQuery;
+    // insertQuery << "INSERT INTO DIAGRAMS (ID,L,P,FACTOR,PROPS,LEGS,VERTS)"
+    //   " VALUES (" 
+    //             << dia.id << ", " 
+    //             << dia.loops << ", " 
+    //             << dia.props.size() << ", " 
+    //             << dia.factor << ", " 
+    //             << quoted(dia.propStr()) << ", " 
+    //             << quoted(dia.legStr()) << ", " 
+    //             << quoted("vertsxx") << ");";
+    
+
+
+    // sqlite3_prepare(dbPtr, insertQuery.str().c_str(), insertQuery.str().size(), &insertStmt, NULL);
+    // // cout << "Stepping Insert Statement" << endl;
+    // if (sqlite3_step(insertStmt) != SQLITE_DONE) 
+    //   mprintln("Didn't Insert Item!");
+    return true;
+  }
+
 public:
 
   bool insert(const std::vector<YAML::Node>& diagrams)
   {
     
     sqlite3_exec(dbPtr, "BEGIN TRANSACTION;", NULL, NULL, NULL);
-
+    
+    sqlite3_stmt *stmt;
+    int rc = sqlite3_prepare_v2(dbPtr, "INSERT INTO DIAGRAMS (ID,L,P,FACTOR,PROPS,LEGS,VERTS) VALUES (?, ?, ?, ?, ?, ?, ?)", -1, &stmt, NULL);
+    if (rc != SQLITE_OK)
+      throw std::string(sqlite3_errmsg(dbPtr));
+    
     
     for(std::vector<YAML::Node>::const_iterator dit = diagrams.begin(); 
         dit != diagrams.end(); ++dit)
       {
         DiagramRecord diagram_record(*dit);
-        if(!insertSingleDia(diagram_record)) return false;
+        
+
+        if(!insertSingleDiaBind(diagram_record, stmt)) return false;
       }
 
     sqlite3_exec(dbPtr, "END TRANSACTION;", NULL, NULL, NULL);
