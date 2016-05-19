@@ -30,6 +30,10 @@
 :Evaluate:  TestCMD::usage  = "Test dummy command."
 
 :Evaluate:  Dia::usage  = "Diagram container."
+:Evaluate:  Subgraphs::usage  = "Diagram container."
+:Evaluate:  Tad::usage  = "Tadpole head."
+:Evaluate:  Dia::usage  = "Rest diagram without tadpoles head."
+:Evaluate:  Sbridge::usage  = "Singulare bridge edge head."
 
 :Evaluate:  F::usage  = "Fermion field."
 :Evaluate:  M::usage  = "Majorana fermion field."
@@ -55,6 +59,11 @@
     GraphPlot[ll, DirectedEdges -> True, MultiedgeStyle -> 0.2, 
               ImagePadding -> 0, EdgeRenderingFunction -> (DressEdge[#1, #3] &),
               VertexLabeling -> False, Method -> "SpringEmbedding"];
+
+:Evaluate: Draw[Subgraphs[ll___]] := 
+    GraphPlot[#/.{Tad->List,Dia->List,Sbridge->List}, DirectedEdges -> True, MultiedgeStyle -> 0.2, 
+              ImagePadding -> 0, EdgeRenderingFunction -> (DressEdge[#1, #3] &),
+              VertexLabeling -> False, Method -> "SpringEmbedding"]& /@ List[ll];
 
 :Evaluate: DressEdge[e_, l_] := 
     Module[{},
