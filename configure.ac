@@ -18,6 +18,8 @@ AC_LANG([C++])
 AC_CHECK_HEADERS([Eigen/Dense])
 AM_CONDITIONAL(HAVE_EIGEN, test "x$ac_cv_header_Eigen_Dense" != "xno")
 
+AX_LIB_SQLITE3([3.0.0])
+
 
 # yaml-cpp parser library
 AC_ARG_WITH([yaml-cpp], AS_HELP_STRING([--with-yaml-cpp], [indicate the position of the yaml-cpp installation (should contain both lib and include dirs]))
