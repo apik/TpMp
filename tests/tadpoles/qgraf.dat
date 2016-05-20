@@ -1,0 +1,26 @@
+
+ output= 'tadpoles.yaml' ;
+
+ style= '../../data/yaml.sty' ;
+
+ model= '../../data/sgy.tpmp';
+
+ in= q ;
+
+ out= q ;
+
+ loops= 2;
+
+ loop_momentum= k;
+
+options= snail;
+
+*true = bridge[g,gb,B1,W1,W2,W3,uu,dd,el,nu,gg,gW1,gW2,gW3,0,0];
+
+*true = iprop[gb,B1,W1,W2,W3,dd,el,nu,gW1,gW2,gW3,0,0];
+
+*true = sbridge[1,1];
+* true = sbridge[2,2];
+*true = rbridge[0,0];
+
+* true=bridge[g,0,0];
