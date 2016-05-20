@@ -61,7 +61,7 @@
               VertexLabeling -> False, Method -> "SpringEmbedding"];
 
 :Evaluate: Draw[Subgraphs[ll___]] := 
-    GraphPlot[#/.{Tad->List,Dia->List,Sbridge->List}, DirectedEdges -> True, MultiedgeStyle -> 0.2, 
+    GraphPlot[#[[1]]/.{Tad->List,Dia->List,Sbridge->List}, DirectedEdges -> True, MultiedgeStyle -> 0.2, 
               ImagePadding -> 0, EdgeRenderingFunction -> (DressEdge[#1, #3] &),
               VertexLabeling -> False, Method -> "SpringEmbedding"]& /@ List[ll];
 

@@ -1065,6 +1065,7 @@ void Tadpoles(int n, int dbnum)
           // One-loop tadpoles
           for(std::vector<size_t>::const_iterator ei = tg.tad1l().begin(); ei != tg.tad1l().end(); ++ei)
             {
+              MLPutFunction(stdlink, "List", 2);
               MLPutFunction(stdlink, "Tad", 1);
               MLPutFunction(stdlink, "List", 2);
               MLPutFunction(stdlink, "Rule", 2);
@@ -1074,6 +1075,7 @@ void Tadpoles(int n, int dbnum)
               MLPutFunction(stdlink, dr.props[*ei - 1].type.c_str(), 1);
               MLPutSymbol  (stdlink, dr.props[*ei - 1].field.c_str());
               
+              MLPutInteger (stdlink, 1);
             }
           
           // Other graphs
@@ -1081,6 +1083,7 @@ void Tadpoles(int n, int dbnum)
           size_t graph_num = 0;
           for(TadpoleGraph::SubgraphIds::const_iterator si = tg.getSubgraphs().begin(); si != tg.getSubgraphs().end(); ++si)
             {
+              MLPutFunction(stdlink, "List", 2);
               if(si->first.size() == 1) // Diagram with single edge is a sbridge
                 MLPutFunction(stdlink, "Sbridge", 1);
               else if(si->second) // Not a Tadpole
@@ -1088,8 +1091,6 @@ void Tadpoles(int n, int dbnum)
               else
                 MLPutFunction(stdlink, "Tad", si->first.size());
               
-              std::cout << " Subgraph with " << si->first.size() << " edges and loops " << tg.getSubgraphs()[graph_num].first.size() // - tg.verts(graph_num).size()
-                +1 << std::endl;
               
               for (std::vector<int>::const_iterator ei = si->first.begin(); ei != si->first.end(); ++ei)
                 {
@@ -1114,9 +1115,13 @@ void Tadpoles(int n, int dbnum)
                   std::cout << "      ee id = " << *ei << std::endl;
 
                 }
+              // L=E-V+1  
+              size_t sub_loops = tg.getSubgraphs()[graph_num].first.size() - tg.verts(graph_num).size() + 1;
+              MLPutInteger (stdlink, sub_loops);
+              graph_num++;
             }
 
-          graph_num++;
+
           // MLPutFunction(stdlink, "List", 2);
           // MLPutInteger (stdlink, fg.open());
           // MLPutInteger (stdlink, tg.numTadpoles());
