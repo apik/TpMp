@@ -1,0 +1,29 @@
+*
+* General Scala-Gauge-Yukawa theory
+*
+
+* propagators
+ [ q, Q, - ; type='F']
+
+ [ g, g, + ; type='V']
+
+ [ gg, GG, - ; type='C']
+
+ [ h, h, + ; type='S']
+
+* vertices
+
+* QCD
+ [ Q, q, g ]
+ [ g, g, g ]
+ [ g, g, g, g ]
+ [ GG, gg, g ]
+
+ [ Q, q, h ]
+
+ [ g, h, h ]
+ [ g, g, h, h ]
+
+ [ h, h, h, h]
+ 
+
