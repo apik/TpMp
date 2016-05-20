@@ -24,6 +24,7 @@
 :Evaluate:  WithFieldType::usage  = "Find diagrams with specified field type (F,M,S,V,C,A)."
 :Evaluate:  FermionFlow::usage    = "Get fermion flow information"
 :Evaluate:  Tadpoles::usage    = "Get tadpole subdiagrams information"
+:Evaluate:  NoSigma::usage    = "Get self-energy insertions information"
 
 :Evaluate:  Echo::usage  = "Echo command to see errors in MathLink string input interpretation command."
 
@@ -154,6 +155,14 @@
 :Begin:
 :Function: Tadpoles
 :Pattern: Tadpoles[n_Integer,dbnum_Integer:1]
+:Arguments: {n,dbnum}
+:ArgumentTypes: {Integer,Integer}
+:ReturnType: Manual
+:End:
+
+:Begin:
+:Function: NoSigma
+:Pattern: NoSigma[n_Integer,dbnum_Integer:1]
 :Arguments: {n,dbnum}
 :ArgumentTypes: {Integer,Integer}
 :ReturnType: Manual

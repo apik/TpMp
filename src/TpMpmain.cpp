@@ -16,6 +16,7 @@
 #include "types.hpp"
 #include "graph.hpp"
 #include "tadpole.hpp"
+#include "sigma.hpp"
 
 using namespace boost::filesystem;
 
@@ -1127,6 +1128,41 @@ void Tadpoles(int n, int dbnum)
           // MLPutInteger (stdlink, tg.numTadpoles());
           
           // MLPutSymbol(stdlink, "Null");
+        }
+      else
+        {
+          std::cout << "Diagram not found in DB" << std::endl;
+          MLPutSymbol(stdlink, "Null");
+        }
+    }
+  else
+    {
+      std::stringstream s;
+      s << "ERROR: SQL DB in slot " << dbnum << " not loaded";
+      mprintln(s.str());
+      MLPutSymbol(stdlink, "Null");
+    }
+  
+}
+
+
+
+void NoSigma(int n, int dbnum)
+{
+
+  if(dbnum <= DBFactory::size())
+    {
+      
+      QgrafSQL qsql = DBFactory::getDBbyNum(dbnum);
+      
+      // qsql.find(n);
+      DiagramRecord dr;
+      if(qsql.select(n, dr))
+        {
+          
+          SigmaFinder sg(dr);
+
+          MLPutSymbol(stdlink, "Null");
         }
       else
         {
