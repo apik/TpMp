@@ -7,30 +7,30 @@
 
 
 
-class dummy_visitor:public default_dfs_visitor 
-{
-  // typedef typename property_traits < TimeMap >::value_type T;
-public:
+// class dummy_visitor:public default_dfs_visitor 
+// {
+//   // typedef typename property_traits < TimeMap >::value_type T;
+// public:
 
-  dummy_visitor(int t)
-    :  m_time(t) 
-  {
-  }
+//   dummy_visitor(int t)
+//     :  m_time(t) 
+//   {
+//   }
   
-  template < typename Vertex, typename Graph >
-    void discover_vertex(Vertex u, const Graph & g) const
-  {
-    std::cout << "Discovered vertex " << u << std::endl;
-    // put(m_dtimemap, u, m_time++);
-  }
+//   template < typename Vertex, typename Graph >
+//     void discover_vertex(Vertex u, const Graph & g) const
+//   {
+//     std::cout << "Discovered vertex " << u << std::endl;
+//     // put(m_dtimemap, u, m_time++);
+//   }
 
-  template < typename Vertex, typename Graph >
-    void finish_vertex(Vertex u, const Graph & g) const
-  {
-    // put(m_ftimemap, u, m_time++);
-  }
-  int & m_time;
-};
+//   template < typename Vertex, typename Graph >
+//     void finish_vertex(Vertex u, const Graph & g) const
+//   {
+//     // put(m_ftimemap, u, m_time++);
+//   }
+//   int & m_time;
+// };
 
 
 

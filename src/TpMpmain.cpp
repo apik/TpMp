@@ -575,15 +575,15 @@ public:
               << "\'%["
               << f 
               << "]%\'";
-
-
+    
+    
     char *zErrMsg = 0;
     int rc;
     // char *sql;
     const char* data = "Callback function called";
     
     std::map<size_t, std::vector<size_t> > rr;
-
+    
     /* Execute SQL statement */
     rc = sqlite3_exec(dbPtr, likeQuery.str().c_str(), findSubstrings, reinterpret_cast<void*>(&rr), &zErrMsg);
     if( rc != SQLITE_OK ){
@@ -593,6 +593,7 @@ public:
       fprintf(stdout, "Operation done successfully\n");
     }
 
+    return true;
   }
   
 };
@@ -1162,7 +1163,20 @@ void NoSigma(int n, int dbnum)
           
           SigmaFinder sg(dr);
 
-          MLPutSymbol(stdlink, "Null");
+          std::cout << "Open list size " << sg.base().size() << std::endl;
+          MLPutFunction(stdlink, "List", sg.base().size());
+          // MLPutInteger (stdlink, fg.open());
+
+          // Only mapped unique edges we mapped on
+          for(std::set<size_t>::const_iterator pi = sg.base().begin(); pi != sg.base().end(); ++pi)
+            {
+              MLPutFunction(stdlink, "Rule", 2);
+              MLPutInteger (stdlink, dr.props[*pi].u);
+              MLPutInteger (stdlink, dr.props[*pi].v);
+              
+            }
+          
+          // MLPutSymbol(stdlink, "Null");
         }
       else
         {
