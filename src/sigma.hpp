@@ -38,9 +38,10 @@ class SigmaFinder
 
   std::map<size_t,size_t> eq_edges;
 
-  // TRUE if edge has same direction with edge it mapped
+  // TRUE if edge has same direction with edge it mapped on
   std::map<size_t,bool>   same_dir;
 
+  // Graph containing only edges with different momenta
   std::set<size_t> no_sigma_graph;
 public:
   SigmaFinder(const DiagramRecord& dr)
@@ -86,14 +87,13 @@ public:
                 vnames.push_back(pi->v);
                 assert(v == vnames.size() - 1);
               }
-
+            
             Edge ee = add_edge (u, v, pi->id, g).first; 
         
             // Set to negative to mark parallel edges not included in map
             // ecm[ee] = -1;
 
             std::cout << "Edge " << pi->type << " added" << std::endl;
-            // }
           }
       }
 
@@ -105,7 +105,8 @@ public:
       {
 
         std::vector<int>::iterator vit = std::find(vnames.begin(), vnames.end(), li->v);
-        if(vit  == vnames.end()) throw;
+        if(vit  == vnames.end()) 
+          throw;
         else
           external_v.push_back(vit - vnames.begin());
       }

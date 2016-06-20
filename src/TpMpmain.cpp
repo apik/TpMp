@@ -106,7 +106,7 @@ void message(const std::string& mtag)
 void message(const std::string& mtag, const std::string& param1)
 {
   std::stringstream ss;
-  ss << "Message[" << mtag << "," << param1 << "]";
+  ss << "Message[" << mtag << ",\"" << param1 << "\"]";
   MLEvaluateString(stdlink, const_cast<char*>(ss.str().c_str()));
 }
 
