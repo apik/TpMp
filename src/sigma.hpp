@@ -36,11 +36,17 @@ class SigmaFinder
   
   std::vector<int> vnames;
 
+  // pair of equal edges
+  // Complicted mappings are composed from pairs of elementary mapping pairs
   std::map<size_t,size_t> eq_edges;
 
   // TRUE if edge has same direction with edge it mapped on
   std::map<size_t,bool>   same_dir;
 
+  // Vertex map for shrinked edges mapping
+public:  
+  std::map<size_t,size_t> v_shrink_to;
+  
   // Graph containing only edges with different momenta
   std::set<size_t> no_sigma_graph;
 public:
@@ -165,6 +171,11 @@ public:
                       size_t rhs = std::min(get(edge_index, g, *ei1), get(edge_index, g, *ei2));
                       eq_edges[lhs] = rhs;
                       
+                      // LHS is edge to be shrinked and we fill vertex shrink map
+                      // We keep vertex with larger number to highlight removed number!!!
+                      v_shrink_to[std::min(dr.props[lhs].u,dr.props[lhs].v)] = std::max(dr.props[lhs].u,dr.props[lhs].v);
+                      std::cout << "Now vertex " << std::min(dr.props[lhs].u,dr.props[lhs].v) << " become " << std::max(dr.props[lhs].u,dr.props[lhs].v) << std::endl;
+
                       if(component[source(*ei1,g)] == component[source(*ei2,g)])
                         same_dir[lhs] = false; // oposit
                       else if(component[source(*ei1,g)] == component[target(*ei2,g)])

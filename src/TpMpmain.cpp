@@ -1164,17 +1164,48 @@ void NoSigma(int n, int dbnum)
           SigmaFinder sg(dr);
 
           std::cout << "Open list size " << sg.base().size() << std::endl;
-          MLPutFunction(stdlink, "List", sg.base().size());
+          MLPutFunction(stdlink, "List", dr.props.size() - sg.no_sigma_graph.size());
           // MLPutInteger (stdlink, fg.open());
 
+
+          for(std::vector<Prop>::const_iterator pi = dr.props.begin(); pi != dr.props.end(); ++pi)
+            {
+
+              if(sg.no_sigma_graph.count(pi->id) > 0) 
+                {
+                  std::cout << " Edge " << pi->id << " has parallel " << std::endl;
+                }
+              else
+                {
+                  MLPutFunction(stdlink, "Rule", 2);
+                  if(sg.v_shrink_to.count(pi->u) > 0)
+                    MLPutInteger (stdlink, sg.v_shrink_to[pi->u]);
+                  else
+                    MLPutInteger (stdlink, pi->u);
+
+                  if(sg.v_shrink_to.count(pi->v) > 0)
+                    MLPutInteger (stdlink, sg.v_shrink_to[pi->v]);
+                  else
+                    MLPutInteger (stdlink, pi->v);
+
+                }
+
+
+              // MLPutFunction(stdlink, "ToExpression", 1);
+              // MLPutString(stdlink, pi->mom.c_str());              
+            }
+
+
           // Only mapped unique edges we mapped on
-          for(std::set<size_t>::const_iterator pi = sg.base().begin(); pi != sg.base().end(); ++pi)
+          for(std::set<size_t>::const_iterator pi = sg.no_sigma_graph.begin(); pi != sg.no_sigma_graph.end(); ++pi)
             {
               MLPutFunction(stdlink, "Rule", 2);
               MLPutInteger (stdlink, dr.props[*pi].u);
               MLPutInteger (stdlink, dr.props[*pi].v);
               
             }
+
+          
           
           // MLPutSymbol(stdlink, "Null");
         }
