@@ -1,0 +1,94 @@
+% arara: pdflatex
+% arara: bibtex
+% arara: pdflatex
+% arara: pdflatex
+
+\documentclass[a4paper,11pt]{article}
+\pdfoutput=1 % if your are submitting a pdflatex (i.e. if you have
+             % images in pdf, png or jpg format)
+
+\usepackage[a4paper,
+total={170mm,257mm},
+left=20mm,
+top=20mm,]{geometry}
+
+\usepackage[dvipsnames]{xcolor}
+\usepackage{longtable}
+\usepackage{authblk}
+\usepackage{hyperref}
+
+\usepackage{titlesec}
+\titleformat{\section}[block]{\color{blue}\Large\bfseries\filcenter}{}{1em}{}
+\titleformat{\subsection}[hang]{\bfseries}{}{1em}{}
+
+
+\title{\textcolor{red}{\texttt{\Huge TpMp}} - topology mapping}
+
+
+\author{Andrey Pikelner}
+\affil{II.~Institut f\"ur Theoretische Physik, Universit\"at Hamburg,\\
+Luruper Chaussee 149, 22761 Hamburg, Germany}
+
+
+% \emailAdd{andrey.pikelner@desy.de}
+
+
+% Mathematica commands in blue
+\newcommand{\mma}[1]{\textcolor{BlueGreen}{\texttt{#1}}}
+
+\setcounter{secnumdepth}{0}
+\begin{document} 
+\maketitle
+
+\abstract{We present program for diagram generation and mapping on
+  topology working with \texttt{Mathematica} interface. Available from
+  \url{https://github.com/apik/TpMp}}
+
+\section*{Main commands available in package }
+
+\subsection*{Loading diagrams}
+\begingroup
+\renewcommand\arraystretch{2}
+\begin{longtable}{p{4cm}|p{11cm}}
+  \mma{LoadQGRAF["qlist"]}
+  & Load \texttt{QGRAF}\cite{Nogueira:1991ex} output \texttt{qlist.yaml} in YAML format produced with the help of
+    yaml.sty style file and produce SQLite 3 DB with generated
+    diagrams and name \texttt{qlist.sqlite3}.\\
+  \mma{nDB=LoadDB["db"]}
+  & Load SQLite 3 DB from file \texttt{db.sqlite3} with diagrams and
+    return numeric descriptor \texttt{nDB} of open DB.\\
+  \mma{GetDia[nDia,nDB]}
+  & Retrive diagram with number \texttt{nDia} from DB with descriptor
+    \texttt{nDB}.\\
+\end{longtable}
+\endgroup
+
+When DB loaded all commands need DB decriptor to be specified. If DB
+descriptor not specified explicitly - all commands applyed to first
+open DB.
+
+\subsection*{Selecting diagrams}
+
+\begingroup
+\renewcommand\arraystretch{2}
+\begin{longtable}{p{4cm}|p{11cm}}
+  \mma{WithField["f"]}
+  & Select diagrams with field named "f".\\
+  \mma{WithFieldType[T]}
+  & Select diagrams with field type \texttt{T}, where \texttt{T} is
+  one of: \texttt{F} - for Dirac fermion, \texttt{M} - for Majorana
+  fermion, \texttt{S} - for scalar, \texttt{C} - for ghost and
+  \texttt{A} - for auxiliary field type.\\
+\end{longtable}
+\endgroup
+
+\subsection*{Plotting diagrams}
+
+% \appendix
+% \section{Additions}
+% \acknowledgments
+
+\bibliographystyle{plain}
+\bibliography{TpMp} 
+
+\end{document}
