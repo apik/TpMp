@@ -35,6 +35,8 @@ Luruper Chaussee 149, 22761 Hamburg, Germany}
 
 % Mathematica commands in blue
 \newcommand{\mma}[1]{\textcolor{BlueGreen}{\texttt{#1}}}
+% Color tt
+\newcommand{\ctt}[1]{\textcolor{OliveGreen}{\texttt{#1}}}
 
 \setcounter{secnumdepth}{0}
 \begin{document} 
@@ -43,6 +45,25 @@ Luruper Chaussee 149, 22761 Hamburg, Germany}
 \abstract{We present program for diagram generation and mapping on
   topology working with \texttt{Mathematica} interface. Available from
   \url{https://github.com/apik/TpMp}}
+
+
+\section*{Design ideas}
+
+\subsection*{QGRAF input conventions}
+\begin{itemize}
+\item We use all particles as internal in QGRAF. Field out kept blank.
+\begin{verbatim}
+   in  = phi,phi ;
+   out = ;
+\end{verbatim}
+\item All fields in model file must contain field \ctt{type} with
+  possible values \ctt{F,M,S,C,A} in addition to
+  comutativity flag $\pm$.
+\begin{verbatim}
+   [ phi, phi, + ; type='S']
+\end{verbatim}
+\end{itemize}
+
 
 \section*{Main commands available in package }
 
@@ -84,6 +105,22 @@ open DB.
 
 \subsection*{Plotting diagrams}
 
+
+\section{Mapping}
+\subsection{\texttt{U} and \texttt{F} polynimials}
+
+$\mathcal{\nu}=$
+
+\subsection{Internal structure}
+
+For set of diagrams it is possible to define ``projections'' i.e.
+diagrams with contraints on kinematical variables: masses and external
+momentums.
+
+Projections created with the help of command \texttt{Project["pr",subs]} where
+parameters \texttt{"pr"} - unique name of projection and \texttt{subs}
+- substitution rules.
+
 % \appendix
 % \section{Additions}
 % \acknowledgments
@@ -92,3 +129,8 @@ open DB.
 \bibliography{TpMp} 
 
 \end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

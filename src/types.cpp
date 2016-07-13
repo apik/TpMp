@@ -86,6 +86,13 @@ DiagramRecord::DiagramRecord(YAML::Node n)
 
   // Filling legs array
   std::cout << n.begin()->second["legs"] << std::endl;
+
+  // Check that all external legs input in qgraf.dat as incoming,
+  // because we parse only incoming legs. It is needed for all
+  // momentums have same direction and symbols w/o "-" sign
+  if(n.begin()->second["extern"].as<int>() > n.begin()->second["legs"].size())
+    throw;
+  
   for (YAML::const_iterator it = n.begin()->second["legs"].begin(); it != n.begin()->second["legs"].end(); ++it) 
     {
       Leg l;

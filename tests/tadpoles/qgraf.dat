@@ -5,9 +5,9 @@
 
  model= '../../data/sgy.tpmp';
 
- in= q ;
+ in= q, Q ;
 
- out= q ;
+ out= ;
 
  loops= 2;
 

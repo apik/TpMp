@@ -15,6 +15,7 @@
   sign   : '<sign>'
   loops  : <loops>
   props  : <propagator_loop>
+  extern : <legs>
     <propagator_index> :  
 <back> {
 <back> u : <dual-vertex_index>, 
@@ -30,14 +31,7 @@
 <back> v : <vertex_index>,
 <back> f : <field>, 
 <back> t : [type],
-<back> m : <momentum>}<end><out_loop>
-    <leg_index> :
-<back> {
-<back> u : -<leg_index>, 
-<back> v : <vertex_index>,
-<back> f : <field>, 
-<back> t : [type],
-<back> m : <dual-momentum>}<end>
+<back> m : <momentum>}<end>
   verts:<vertex_loop>
     <vertex_index> :
 <back> { struct : <ray_loop>[type]<end>, 
