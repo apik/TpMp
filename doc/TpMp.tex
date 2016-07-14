@@ -51,18 +51,26 @@ Luruper Chaussee 149, 22761 Hamburg, Germany}
 
 \subsection*{QGRAF input conventions}
 \begin{itemize}
-\item We use all particles as internal in QGRAF. Field out kept blank.
+\item We use all particles as internal in QGRAF and having momentum
+  $p_1,\dots,p_n$. Field out kept blank.
 \begin{verbatim}
-   in  = phi,phi ;
+   in  = q, Q ;
    out = ;
 \end{verbatim}
+
 \item All fields in model file must contain field \ctt{type} with
   possible values \ctt{F,M,S,C,A} in addition to
   comutativity flag $\pm$.
 \begin{verbatim}
    [ phi, phi, + ; type='S']
 \end{verbatim}
+
+\item We set internal momentum to be \ctt{k}
 \end{itemize}
+
+
+\subsection*{DB storage}
+\label{sec:dbstore}
 
 
 \section*{Main commands available in package }
@@ -107,9 +115,40 @@ open DB.
 
 
 \section{Mapping}
-\subsection{\texttt{U} and \texttt{F} polynimials}
+\subsection{\boldmath $U$ and $F$ polynomials}
 
-$\mathcal{\nu}=$
+If we define $P_i=-q_j^2+m_j^2$, than:
+\begin{equation}
+  \label{eq:MQJdefMass}
+  \sum\limits_{j=1}^{n}x_j(-q_j^2+m_j^2)=-\sum\limits_{r=1}^{l}\sum\limits_{s=1}^{l}k_rM_{rs}k_s+\sum\limits_{r=1}^{l}2k_r\cdot
+  Q_r+J
+\end{equation}
+Term $J$ contain all dependence on external momentum products and
+masses and can be decomposed:
+
+\begin{equation}
+  \label{eq:Jdecompose}
+  J=J^{p}+J^{m} = J^{p}(p_i^2,p_i\cdot p_j)+\sum\limits_{j=1}^{n}x_jm_j^2
+\end{equation}
+
+If only information about momentum distribution needed we can neglect
+masses and use $P$ polynomial instead of $F$
+
+\begin{equation}
+  \label{eq:MQJdefNoMass}
+  -\sum\limits_{j=1}^{n}x_jq_j^2=-\sum\limits_{r=1}^{l}\sum\limits_{s=1}^{l}k_rM_{rs}k_s+\sum\limits_{r=1}^{l}2k_r\cdot
+  Q_r+J^{p}
+\end{equation}
+
+And Feynman graph polymnomials defined as
+\begin{equation}
+  \label{eq:UFMdef}
+  U=\det(M),\quad P=\det(M)(J^p+QM^{-1}Q),\quad F=\det(M)(J+QM^{-1}Q).
+\end{equation}
+
+$U$ polynomial determine internal structure of diagram, $P$ polynomial
+determines external momenta distribution and kinematic of the diagram
+and $F$-polynomial determines how masses are distributed between lines.
 
 \subsection{Internal structure}
 
