@@ -74,45 +74,46 @@ PolynomialOrderings[
 
 (* Check scaleless *)
 IsScaleless[fp_,xs_:Null] :=
-  Module[{fm,cc,pr,nx},
-         If[fp===0,
-            True,               (* F=0 scaleless *)
-            if[xs===Null,
-               xs=Union[Cases[fp,x[_],-1]]];
-            (* polynomial -> list of rules *)
-            fm = CoefficientRules[fp,xs];
-            (* find GCD of coefficients *)
-            cc = PolynomialGCD @@ (#[[2]] & /@ fm);
-            (* remove common factors, normalize, sort *)
-            rm = Sort[Prepend[#[[1]], Simplify[#[[2]]/cc]]& /@ fm];
-            (* coefficients -> scaling powers of small parameter *)
-            rs = Prepend[Drop[#,1], -Exponent[Expand[#[[1]]] /. sm->1/x, x]]& /@ rm;
-            
-            Print["points: ",rs];
-            
-            Print[Length[rs]," points"];
-            
-            (* aux function to determine rank of a set of points *)
-            PRank[ps_List] := If[Length[ps] <= 1, 0, 
-                                 MatrixRank @ Map[# - ps[[1]]&, Drop[ps,1]]];
-            
-            pr = PRank[rs];
-            Print["dimensionality of the convex hull: ",pr];
-            nx = Length[xs];
-            (pr < nx - 1)
-           ]
-        ]
+    Module[{fm,cc,pr,nx},
+           If[fp===0,
+              True,               (* F=0 scaleless *)
+              if[xs===Null,
+                 xs=Union[Cases[fp,x[_],-1]]];
+              (* polynomial -> list of rules *)
+              fm = CoefficientRules[fp,xs];
+              (* find GCD of coefficients *)
+              cc = PolynomialGCD @@ (#[[2]] & /@ fm);
+              (* remove common factors, normalize, sort *)
+              rm = Sort[Prepend[#[[1]], Simplify[#[[2]]/cc]]& /@ fm];
+              (* coefficients -> scaling powers of small parameter *)
+              rs = Prepend[Drop[#,1], -Exponent[Expand[#[[1]]] /. sm->1/x, x]]& /@ rm;
+              
+              Print["points: ",rs];
+              
+              Print[Length[rs]," points"];
+              
+              (* aux function to determine rank of a set of points *)
+              PRank[ps_List] := If[Length[ps] <= 1, 0, 
+                                   MatrixRank @ Map[# - ps[[1]]&, Drop[ps,1]]];
+              
+              pr = PRank[rs];
+              Print["dimensionality of the convex hull: ",pr];
+              nx = Length[xs];
+              (pr < nx - 1)
+             ]
+          ]
 
 (* Generate all posible subtopologies from master topology *)
-TopoFromAux[ks_,ds_]:=
+ToposFromAux[ks_,ds_] :=
     Module[{ufx,scf},
-           ufx={UF[ks,#,{}],#}& /@ Subsets[ds,{Length[ks],Length[ds]}];
+           ufx = {UF[ks,#,{}],#}& /@ Subsets[ds,{Length[ks],Length[ds]}];
+           Print[ufx];
            (* Select only scalefull topologies *)
-           scf=Select[ufx,Not[IsScaleLess[#[[1,1]]*#[[1,2]],#[[1,3]]]]&];
-           (* For each construct transformation to minimum *)
-
-           RewireX[po_]:=MapIndexed[(x[#2[[1]]]->x[#1])&,po[[1]]];
-
-           (RewireX[PolynomialOrderings[#[[1,1]] + #[[1,2]], #[[1,3]],1]])& /@ scf
+           scf=Select[ufx,Not[IsScaleless[#[[1,1]]*#[[1,2]],#[[1,3]]]]&];
+           
+           (* For each subtopo construct transformation to minimum *)
+           RewireX[po_] := MapIndexed[(x[#1] -> x[#2[[1]]])&, po[[1]]];
+           
+           ({#[[2]],#[[1,1]],#[[1,2]]}/.RewireX[PolynomialOrderings[#[[1,1]] + #[[1,2]], #[[1,3]],1]])& /@ scf
           ]
 
