@@ -103,17 +103,133 @@ IsScaleless[fp_,xs_:Null] :=
              ]
           ]
 
-(* Generate all posible subtopologies from master topology *)
-ToposFromAux[ks_,ds_] :=
-    Module[{ufx,scf},
-           ufx = {UF[ks,#,{}],#}& /@ Subsets[ds,{Length[ks],Length[ds]}];
-           Print[ufx];
-           (* Select only scalefull topologies *)
-           scf=Select[ufx,Not[IsScaleless[#[[1,1]]*#[[1,2]],#[[1,3]]]]&];
-           
-           (* For each subtopo construct transformation to minimum *)
-           RewireX[po_] := MapIndexed[(x[#1] -> x[#2[[1]]])&, po[[1]]];
-           
-           ({#[[2]],#[[1,1]],#[[1,2]]}/.RewireX[PolynomialOrderings[#[[1,1]] + #[[1,2]], #[[1,3]],1]])& /@ scf
+
+(* Return three plynomials: U,F and P = F/.m->0 *)
+UFP[ks_,prs_] :=
+    Module[{ds,ms,up,fp,pp,xs},
+           ds = First[#]^2& /@ prs;
+           ms = Last  /@ prs;
+           Print["UFP ds=",ds," ms= ",ms];
+           {up,pp,xs}=UF[ks,ds,{}];
+           If[pp === 0,Return[{0,0,0,{}}]];
+           Print[up,pp,xs];
+           fp = pp + up*(Plus @@ MapThread[(#1*#2^2)&,{xs,ms}]);
+           {up,pp,fp,xs,ms}
           ]
 
+(* For each subtopo construct transformation to minimum *)
+RewireX[po_] := MapIndexed[(x[#1] -> x[#2[[1]]])&, po];
+
+(* Generate all posible subtopologies from master topology *)
+(* ks  = {k1,k2,...}*)
+(* prs = {{k1,m1},{p1+k1,m2},...} *)
+ToposFromAux[ks_,prs_] :=
+    Module[{ds,ms,upfxm,scf},
+           ds = First[#]^2& /@ prs;
+           ms = Last  /@ prs;
+           upfxm = {UFP[ks,#],#}& /@ Subsets[prs,{Length[ks],Length[prs]}];
+           Print["UPFX = ",ufx];
+           (* Select only scalefull topologies *)
+           scf=Select[upfxm,Not[IsScaleless[#[[1,1]]*#[[1,3]],#[[1,4]]]]&];
+           
+           (* Map of unique topologies, key={U,F} *)
+           ufmap=Association[];
+
+           Do[
+               Block[{up,pp,fp,xs,ms,props,newprops,po,xsub,upnew,ppnew,fpnew},
+                     {{up,pp,fp,xs,ms},props} = i;
+                     newprops  = props;
+                     (* Find polynomial ordering *)
+                     po = First[PolynomialOrderings[up + fp, xs, 1]];
+                     MapIndexed[(newprops[[#1]] = props[[#2[[1]]]])&, po];
+                     
+                     xsub = RewireX[po];
+                     Print["po= ",po, " props: ",props, "  ===  ", newprops, " xsub = ",xsub];
+
+                     {upnew,ppnew,fpnew} = {up,pp,fp}/.xsub;
+                     ufprop=Association[upnew -> Association[ppnew -> newprops]];
+                     Print["New rule: ",ufprop];
+                     (* ufmap = Map[Join @@ # &,Merge[{ufmap,ufprop},Identity]]; *)
+                     ufmap = Map[If[Length[#]==1,First[#],Merge[#,Identity]]&,Merge[{ufmap,ufprop},Identity]];
+                     (* ufmap = Merge[{ufmap,ufprop},Identity]; *)
+                     Print["Map: ",ufmap];
+                     (* AppendTo[ufmap, ({up,fp}/.xsub)->newprops]; *)
+                    ]
+               , {i, scf}];
+           ufmap
+          ]
+
+MapOnAux[ks_,prs_,auxtop_] :=
+    Module[{up,pp,fp,xs,po,upnew,ppnew,fpnew,fpCrules,fkey,ds,ms,
+            possibleProps,nonZeroSymb,mappedWithMass,prsnew=prs},
+           (* ds = First[#]^2& /@ prs; *)
+           (* ms = Last[#]^2&  /@ prs; *)
+           {up,pp,fp,xs,ms} = UFP[ks,prs];
+           
+           po = First[PolynomialOrderings[up + fp, xs, 1]];
+           xsub = RewireX[po];
+
+           prsnew = MapIndexed[(prsnew[[#1]] = prs[[#2[[1]]]])&, po];
+
+           {upnew,ppnew,fpnew} = {up,pp,fp}/.xsub;
+           ppCrules      = Sort[CoefficientRules[ppnew,xs]];
+           Print["U=",upnew];
+           Print["F=",fpnew];
+
+           Catch[
+               ft=Lookup[auxtop,upnew,Print["Topo with such U not found"];Throw[Null]];
+               Print["Orig CR ",First /@ ppCrules];
+               Print["Keys:",Keys[ft]];
+               Print[First/@(CoefficientRules[#,xs])&/@Keys[ft]];
+
+               (* Select F-poly with the same set of monomials in x[i] *)
+               fkeys=Select[Keys[ft],(First/@(Sort[CoefficientRules[#,xs]])) == First/@ppCrules&];
+
+               If[Length[fkeys] == 0,
+                  Print["Topo with such F not found"];
+                  Throw[Null],
+
+                  If[Length[fkeys] > 1,
+                     Print["Ambiguity in F poly identification"];
+                     Throw[Null],
+
+                     (* Only one equal monomial set *)
+                     spSys = MapThread[(#1[[2]] == #2[[2]])&,{ppCrules,Sort[CoefficientRules[First[fkeys],xs]]}];
+                     
+                     possibleProps=ft[First[fkeys]];
+                     
+                     Print["Mass distr: ",(Last /@ #)& /@ possibleProps];
+
+                     (* symbol masses can not become zero after mapping *)
+                     nonZeroSymb=And @@((# != 0)& /@ Union[Cases[ms,_Symbol]]);
+                     Print[Solve[(ms==#) && nonZeroSymb]& /@ ((Last /@ #)& /@ possibleProps)];
+
+                     NonEmptyMass[pp_]:= Solve[(ms==(Last/@pp)) && nonZeroSymb];
+
+                     Print["NEM:",NonEmptyMass /@ possibleProps];
+
+                     (* If mapping is possible system {m1,m2,m3,...}=={m4,m5,m6,...} has solution *)
+                     (* Equal mass mapped on equal mass, zero on zero etc. *)
+                     mappedWithMass = Select[possibleProps, NonEmptyMass[#] =!= {}&];
+                     
+                     If[Length[mappedWithMass]==0,
+                        Print["No mass distribution found"];
+                        Throw[Null],
+                        
+                        If[Length[mappedWithMass] > 1,
+                           Print["Mass distribution ambiguity"];
+                           Throw[Null],
+
+                           (* Mass distribution found *)
+                           Print[Solve[ (MapIndexed[sgn[#2[[1]]]*First[#1]&,prsnew]) == (First /@ First[mappedWithMass]), Table[sgn[j],{j,1,Length[prsnew]}]]];
+                           Throw[{spSys,upnew,First[fkeys],First[mappedWithMass]}]
+                          ]
+                       ]
+                     Print["Mass:  ",mappedWithMass];
+
+                    ]
+                 ]
+               Print["F match: ",fkeys];
+                ]
+
+          ]
