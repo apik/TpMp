@@ -1,14 +1,13 @@
-:Evaluate:  Print["                                           "];
-:Evaluate:  Print["                   _____     _____         "];
-:Evaluate:  Print["                  |_   _|___|     |___     "];
-:Evaluate:  Print["                    | | | . | | | | . |    "];
-:Evaluate:  Print["                    |_| |  _|_|_|_|  _|    "];
-:Evaluate:  Print["                        |_|       |_|      "];
-:Evaluate:  Print["                                           "];
-
-:Evaluate:  Print["TpMp - Topology Mapping"];
-:Evaluate:  Print["To see available functions use Names[\"TpMp`*\"]"];
-:Evaluate:  Print["Andrey Pikelner <pikelner@theor.jinr.ru>"];
+:Evaluate:  Print["                                           \n",
+                  "                   _____     _____         \n",
+                  "                  |_   _|___|     |___     \n",
+                  "                    | | | . | | | | . |    \n",
+                  "                    |_| |  _|_|_|_|  _|    \n",
+                  "                        |_|       |_|      \n",
+                  "                                           \n",
+                  "TpMp - Topology Mapping\n",
+                  "To see available functions use Names[\"TpMp`*\"]\n",
+                  "Andrey Pikelner <pikelner@theor.jinr.ru>"];
 
 :Evaluate:  BeginPackage["TpMp`"];
 
