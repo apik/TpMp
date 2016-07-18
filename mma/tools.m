@@ -223,10 +223,26 @@ MapOnAux[ks_,prs_,auxtop_] :=
            topos=auxtop[[Key[upnew],Key[monocrp],Key[(If[#[[2]]===0,0,1]& /@ prs)]]];
 
            If[MatchQ[topos,Missing[_,_]],
-
+              
               Print["Topology not found!"];
               Return[Null],
-              topos]
+
+              (* Topology found in DB *)
+              sAux=(Plus @@ Table[a[j]*topos[[1,2,j,1]],{j,1,Length[prsnew]}])==0;
+              arestrict=And @@ Table[(Abs[a[i]]==1||a[i]==0),{i,1,Length[prsnew]}];
+              aNot0=(Plus@@Table[Abs[a[i]],{i,1,Length[prsnew]}]) != 0;
+
+              Solve[sAux && And[arestrict] && aNot0,Table[a[j],{j,1,Length[prsnew]}]]
+              (* (Plus @@ Table[a[j]*(prsnew[[j,1]] - sgn[j]*topos[[1,2,j,1]]),{j,1,Length[prsnew]}])==0 *)
+             ]
+
+              (* s1=(Plus @@ MapIndexed[a[#2[[1]]]*#1[[1]]&,prsnew])==0 *)
+             (*  Solve[ *)
+             (*      Append[Table[(Abs[a[i]]==1||a[i]==0),{i,1,Length[prsnew]}], *)
+             (*             (Plus @@ MapIndexed[a[#2[[1]]]*#1[[1]]&,prsnew])==0], *)
+             (*      Table[a[i],{i,1,Length[prsnew]}]] *)
+              
+             (* ] *)
            
            (* Catch[ *)
 
