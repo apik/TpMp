@@ -19,7 +19,8 @@ UF[ks_,ds_,cs_,opt___Rule] :=
                degree = Together[t0 - ((t1^2)/(4*t2))]];
            degree = Together[- coeff * degree] //. cz;
            coeff = Together[coeff] //. cz;
-           {coeff,Expand[degree],vs}]
+           (* - for positive F *)
+           {coeff,Expand[-degree],vs}]
 
 (*******************************************************************************)
 (* p: polynomial, return orderings of variables so that p is in canonical form *)
@@ -75,6 +76,7 @@ PolynomialOrderings[
 (* Check scaleless *)
 IsScaleless[fp_,xs_:Null] :=
     Module[{fm,cc,pr,nx},
+           (* Print["Scale Fp=",fp]; *)
            If[fp===0,
               True,               (* F=0 scaleless *)
               if[xs===Null,
@@ -107,12 +109,13 @@ IsScaleless[fp_,xs_:Null] :=
 (* Return three plynomials: U,F and P = F/.m->0 *)
 UFP[ks_,prs_] :=
     Module[{ds,ms,up,fp,pp,xs},
-           ds = First[#]^2& /@ prs;
+           ds = -First[#]^2& /@ prs;
            ms = Last  /@ prs;
            (* Print["UFP ds=",ds," ms= ",ms]; *)
            {up,pp,xs}=UF[ks,ds,{}];
-           If[pp === 0,Return[{0,0,0,{}}]];
-           (* Print[up,pp,xs]; *)
+           (* If[pp === 0,Return[{0,0,0,{}}]]; *)
+           (* Print["All set:",{up,pp,xs,ms}]; *)
+           If[up === 0,Return[{0,0,0,{}}]];
            fp = pp + up*(Plus @@ MapThread[(#1*#2^2)&,{xs,ms}]);
            {up,pp,fp,xs,ms}
           ]
@@ -120,29 +123,61 @@ UFP[ks_,prs_] :=
 (* For each subtopo construct transformation to minimum *)
 RewireX[po_] := MapIndexed[(x[#1] -> x[#2[[1]]])&, po];
 
-(* Generate all posible subtopologies from master topology *)
+(* Generate all posible subtopologies from set of master topologies *)
+(* Set of master topologies have same external and internal momentums, but different propagator expressions *)
+(* and mass es on lines *)
 (* ks  = {k1,k2,...}*)
-(* prs = {{k1,m1},{p1+k1,m2},...} *)
-ToposFromAux[ks_,prs_] :=
-    Module[{ds,ms,upfxm,scf},
-           ds = First[#]^2& /@ prs;
-           ms = Last  /@ prs;
-           upfxm = {UFP[ks,#],#}& /@ Subsets[prs,{Length[ks],Length[prs]}];
+(* legs= {p1,p2,p3,-p1-p2-p3} *)
+(* prs = {T1[{k1,m1},{p1+k1,m2},...],T2[{k1,0},...]} *)
+
+(* TODO:
+   - Add possibility to map on exactly specified different masses and not only on signature
+ *)
+ToposFromAux[ks_,legs_,prs_List] :=
+    Module[{ds,ms,ufmap,scf,legSubsets,vertexCons},
+           (* ds = First[#]^2& /@ prs; *)
+
+           scf={};
+           Do[
+               Block[{upfxm,scfTop,top},
+                     top = MapIndexed[(Prepend[#1,#2[[1]]])&,topNoNum];
+                     (* Print[Subsets[List @@ top,{Length[ks],Length[top]}]]; *)
+                     NoNum[l_]:=(#[[2;;3]])& /@ l;
+                     upfxm = ({UFP[ks,NoNum[#]],#})& /@ Subsets[List @@ top,{Length[ks],Length[top]}];
+                     (* Print["U,P,F,... ",upfxm]; *)
+                     scfTop= (Head[top] @@ #)& /@ Select[upfxm,Not[IsScaleless[#[[1,1]]*#[[1,3]],#[[1,4]]]]&];
+                     (* scfTop= (Head[top] @@ #)& /@ upfxm; *)
+                     (* Print["SCFTOP:::::::",scfTop]; *)
+                     scf=Join[scf,scfTop];
+                    ]
+               , {topNoNum, prs}
+             ];
+
+           (* Print["SCFFF:",scf]; *)
+           (* Print["OOOOOOOOOOOOOOOOOOOO"]; *)
+           (* ms = Last  /@ prs; *)
+           (* upfxm = {UFP[ks,#],#}& /@ Subsets[prs,{Length[ks],Length[prs]}]; *)
            (* Print["UPFX = ",upfxm]; *)
            (* Select only scalefull topologies *)
-           scf=Select[upfxm,Not[IsScaleless[#[[1,1]]*#[[1,3]],#[[1,4]]]]&];
+           (* scf=Select[upfxm,Not[IsScaleless[#[[1,1]]*#[[1,3]],#[[1,4]]]]&]; *)
            
            (* Map of unique topologies, key={U,F} *)
            ufmap=Association[];
-
+           (* Print[ufmap]; *)
            Do[
-               Block[{up,pp,fp,xs,ms,props,newprops,po,xsub,upnew,ppnew,fpnew,crp,monocrp,kkU,kkCR,kkM,msbin},
-                     {{up,pp,fp,xs,ms},props} = i;
+               Block[{up,pp,fp,xs,ms,props,newprops,po,xsub,upnew,ppnew,fpnew,crp,monocrp,kkU,kkCR,kkM,msbin,topo},
+                     (* Print[i]; *)
+                     {{up,pp,fp,xs,ms},props} = List @@ i;
+                     topo = Head[i];
+                     (* Print["Topology : ",topo]; *)
                      newprops  = props;
                      (* Find polynomial ordering *)
                      po = First[PolynomialOrderings[up + fp, xs, 1]];
+
+                     (* Add numbering inside TOPO to propagators *)
                      MapIndexed[(newprops[[#1]] = props[[#2[[1]]]])&, po];
-                     
+                     newprops = topo @@ newprops;
+
                      xsub = RewireX[po];
                      (* Print["po= ",po, " props: ",props, "  ===  ", newprops, " xsub = ",xsub]; *)
 
@@ -155,10 +190,10 @@ ToposFromAux[ks_,prs_] :=
                      msbin=(If[#===0,0,1]& /@ ms);
                      (* ufprop=Association[upnew -> Association[monocrp -> Association[(If[#===0,0,1]& /@ ms) -> {crp,newprops}]]]; *)
 
-                     Print["New rule: ",Association[upnew -> Association[monocrp -> Association[msbin -> {{crp,newprops}}]]]];
+                     (* Print["New rule: ",Association[upnew -> Association[monocrp -> Association[msbin -> {{crp,newprops}}]]]]; *)
                      
                      kkU=Lookup[ufmap, upnew];
-                     Print["kkU=",kkU];
+                     (* Print["kkU=",kkU]; *)
                      
                      If[MatchQ[kkU, Missing[_, _]],
                         (* New U value appending *)
@@ -166,20 +201,20 @@ ToposFromAux[ks_,prs_] :=
                         
                         (* U value already exists *)
                         kkCR=ufmap[upnew][monocrp];
-                        Print["kkCR=", kkCR];
+                        (* Print["kkCR=", kkCR]; *)
                         If[MatchQ[kkCR, Missing[_, _]],
                            AppendTo[ufmap[upnew], Association[monocrp -> Association[msbin -> {{crp,newprops}}]]],
                            
                            (* CoeffRules already exists *)
                            kkM=ufmap[upnew][monocrp][msbin];
-                           Print["kkM=",kkM];
+                           (* Print["kkM=",kkM]; *)
                            If[MatchQ[kkM, Missing[_, _]],
                               AppendTo[ufmap[[Key[upnew],Key[monocrp]]], Association[msbin -> {{crp,newprops}}]],
                               
                               (* Mass distrib exists *)
                               (* aptmp=ufmap[upnew][monocrp]; *)
-                              Print["Going to append to: ",ufmap[upnew][monocrp][msbin]];
-                              Print[msbin];
+                              (* Print["Going to append to: ",ufmap[upnew][monocrp][msbin]]; *)
+                              (* Print[msbin]; *)
                               If[FirstPosition[ufmap[[Key[upnew],Key[monocrp],Key[msbin]]],{crp,_}] == Missing["NotFound"],
                                  ufmap[[Key[upnew],Key[monocrp],Key[msbin]]]=Append[ufmap[upnew][monocrp][msbin], {crp,newprops}]
                                 ]
@@ -195,14 +230,64 @@ ToposFromAux[ks_,prs_] :=
                      (* FlatSub[as_]:=(If[Length[#]==1,#,Append@@ #])& /@ as; *)
                      (* ufmap = Map[FlatSub[Merge[#,Identity]]&,Merge[{ufmap,ufprop},Identity]]//.{{a_}}:>{a}; *)
                      (* ufmap = Merge[{ufmap,ufprop},Identity]; *)
-                     Print["Map: ",ufmap];
+                     (* Print["Map: ",ufmap]; *)
                      (* AppendTo[ufmap, ({up,fp}/.xsub)->newprops]; *)
                     ]
                , {i, scf}];
-           ufmap
+
+
+           (*                                                          *)
+           (*                                                          *)
+           (*   Precalculate vertex conservation rules for each topo   *)
+           (*                                                          *)
+           (*                                                          *)
+           
+           legSubsets=
+           If[Length[legs] >= 2,
+              Subsets[legs[[1;;-2]],{1,Length[legs]-1}],
+              {{}}
+             ];
+           
+           vertexCons=Association[];
+
+           Do[
+               Block[{topo=Head[topprops],lc,arestrict,aNot0,
+                     solInt,solExt, exlst},
+                     Print["Conservation rules for topo ",topo];
+                     lc=(Plus @@ Table[a[j]*topprops[[j,1]],{j,1,Length[topprops]}]);
+                     (* We find linear combination with coefficients a={-1,0,1} only *)
+                     arestrict=And @@ Table[(Abs[a[i]]==1||a[i]==0),{i,1,Length[topprops]}];
+                     (* We do not interested in trivial solution when all a=0 *)
+                     aNot0=(Plus@@Table[Abs[a[i]],{i,1,Length[topprops]}]) != 0;
+
+                     Print[lc];
+
+                     solInt=Solve[lc == 0 && And[arestrict] && aNot0,Table[a[j],{j,1,Length[topprops]}]];
+                     Print["IntRules:",solInt];
+                     
+                     exlst={};
+                     (* Add internal rules {c1,c2,...}==0 *)
+                     AppendTo[exlst,((Table[a[j],{j,1,Length[topprops]}]/.#)==0)]& /@ solInt;
+
+                     Do[
+                         Print["Legs:",emom];
+                         (* Total momentum flow through the cut is equal to external momentum *)
+                         solExt=Solve[lc == (Plus@@emom) && And[arestrict] && aNot0,Table[a[j],{j,1,Length[topprops]}]];
+                         Print["Sol:",solExt];
+
+                         AppendTo[exlst,((Table[a[j],{j,1,Length[topprops]}]/.#)==Plus @@ emom)]& /@ solExt;
+                         
+                         
+                         ,{emom,legSubsets}]
+                     
+                     AppendTo[vertexCons,topo->exlst];
+                    ],{topprops,prs}];
+
+           
+           {ufmap,vertexCons}
           ]
 
-MapOnAux[ks_,prs_,auxtop_] :=
+MapOnAux[ks_,legs_,prs_,{auxtop_,vertcons_}] :=
     Module[{up,pp,fp,xs,po,upnew,ppnew,fpnew,crp,monocrp,fkey,ds,ms,
             possibleProps,nonZeroSymb,mappedWithMass,prsnew=prs},
            (* ds = First[#]^2& /@ prs; *)
@@ -228,21 +313,22 @@ MapOnAux[ks_,prs_,auxtop_] :=
               Return[Null],
 
               (* Topology found in DB *)
-              sAux=(Plus @@ Table[a[j]*topos[[1,2,j,1]],{j,1,Length[prsnew]}])==0;
-              arestrict=And @@ Table[(Abs[a[i]]==1||a[i]==0),{i,1,Length[prsnew]}];
-              aNot0=(Plus@@Table[Abs[a[i]],{i,1,Length[prsnew]}]) != 0;
-
-              Solve[sAux && And[arestrict] && aNot0,Table[a[j],{j,1,Length[prsnew]}]]
-              (* (Plus @@ Table[a[j]*(prsnew[[j,1]] - sgn[j]*topos[[1,2,j,1]]),{j,1,Length[prsnew]}])==0 *)
-             ]
-
-              (* s1=(Plus @@ MapIndexed[a[#2[[1]]]*#1[[1]]&,prsnew])==0 *)
-             (*  Solve[ *)
-             (*      Append[Table[(Abs[a[i]]==1||a[i]==0),{i,1,Length[prsnew]}], *)
-             (*             (Plus @@ MapIndexed[a[#2[[1]]]*#1[[1]]&,prsnew])==0], *)
-             (*      Table[a[i],{i,1,Length[prsnew]}]] *)
               
-             (* ] *)
+              Print["Mapping on top:",topos];
+              (* topos[[]]; *)
+              
+              If[ExactMatch/.opt,
+                 
+                 (* Check masses for exact match *)
+
+                 (* TODO *)
+                 ,
+                 (* First match is ok *)
+
+                 (* TODO *)
+                ]
+              
+             ]
            
            (* Catch[ *)
 
