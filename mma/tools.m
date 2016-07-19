@@ -165,7 +165,7 @@ ToposFromAux[ks_,legs_,prs_List] :=
            ufmap=Association[];
            (* Print[ufmap]; *)
            Do[
-               Block[{up,pp,fp,xs,ms,props,newprops,po,xsub,upnew,ppnew,fpnew,crp,monocrp,kkU,kkCR,kkM,msbin,topo,mvec},
+               Block[{up,pp,fp,xs,ms,props,newprops,po,xsub,upnew,ppnew,fpnew,crp,monocrp,kkt,kkU,kkCR,kkM,msbin,topo,mvec},
                      (* Print[i]; *)
                      {{up,pp,fp,xs,ms},props} = List @@ i;
                      topo = Head[i];
@@ -174,9 +174,13 @@ ToposFromAux[ks_,legs_,prs_List] :=
                      (* Find polynomial ordering *)
                      po = First[PolynomialOrderings[up + fp, xs, 1]];
 
+                     Print["Poly order:",po];
                      (* Add numbering inside TOPO to propagators *)
-                     MapIndexed[(newprops[[#1]] = props[[#2[[1]]]])&, po];
+                     (* STRANGE !!!!!!!! *)
+                     MapIndexed[(newprops[[#2[[1]]]] = props[[#1]])&, po];
+                     (* MapIndexed[(newprops[[#1]] = props[[#2[[1]]]])&, po]; *)
                      newprops = topo @@ newprops;
+                     Print["New props:", newprops];
 
                      xsub = RewireX[po];
                      (* Print["po= ",po, " props: ",props, "  ===  ", newprops, " xsub = ",xsub]; *)
@@ -193,47 +197,57 @@ ToposFromAux[ks_,legs_,prs_List] :=
                      (* ufprop=Association[upnew -> Association[monocrp -> Association[(If[#===0,0,1]& /@ ms) -> {crp,newprops}]]]; *)
 
                      (* Print["New rule: ",Association[upnew -> Association[monocrp -> Association[msbin -> {{crp,newprops}}]]]]; *)
-                     
-                     kkU=Lookup[ufmap, upnew];
-                     (* Print["kkU=",kkU]; *)
-                     
-                     If[MatchQ[kkU, Missing[_, _]],
-                        (* New U value appending *)
-                        AppendTo[ufmap, Association[upnew -> Association[monocrp -> Association[msbin -> {{crp,newprops}}]]]],
-                        
-                        (* U value already exists *)
-                        kkCR=ufmap[upnew][monocrp];
-                        (* Print["kkCR=", kkCR]; *)
-                        If[MatchQ[kkCR, Missing[_, _]],
-                           AppendTo[ufmap[upnew], Association[monocrp -> Association[msbin -> {{crp,newprops}}]]],
-                           
-                           (* CoeffRules already exists *)
-                           kkM=ufmap[upnew][monocrp][msbin];
-                           (* Print["kkM=",kkM]; *)
-                           If[MatchQ[kkM, Missing[_, _]],
-                              AppendTo[ufmap[[Key[upnew],Key[monocrp]]], Association[msbin -> {{crp,newprops}}]],
-                              
-                              (* Mass distrib exists *)
-                              (* aptmp=ufmap[upnew][monocrp]; *)
-                              (* Print["Going to append to: ",ufmap[upnew][monocrp][msbin]]; *)
-                              (* Print[msbin]; *)
 
-                              (* Fill vector of masses to compare with *)
-                              GetMasses[pr_]:= List @@ ((#[[3]])& /@ pr);
-                              mvec = GetMasses[newprops];
+                     t = Length[newprops];                     
+                     kkt = Lookup[ufmap,t];
+                     
+                     
+                     If[MatchQ[kkt, Missing[_, _]],
+
+                        (* New t value appending *)
+                        AppendTo[ufmap, Association[t -> Association[upnew -> Association[monocrp -> Association[msbin -> {{crp,newprops}}]]]]],
+                        
+                        
+                        kkU =ufmap[t][upnew];
+                        Print["kkU=",kkU];
+                        
+                        If[MatchQ[kkU, Missing[_, _]],
+                           (* New U value appending *)
+                           AppendTo[ufmap[[Key[t]]], Association[upnew -> Association[monocrp -> Association[msbin -> {{crp,newprops}}]]]],
+                           
+                           (* U value already exists *)
+                           kkCR=ufmap[t][upnew][monocrp];
+                           (* Print["kkCR=", kkCR]; *)
+                           If[MatchQ[kkCR, Missing[_, _]],
+                              AppendTo[ufmap[[Key[t],Key[upnew]]], Association[monocrp -> Association[msbin -> {{crp,newprops}}]]],
                               
-                              Print["M vetor ",mvec];
-                              If[Length[Select[ufmap[[Key[upnew],Key[monocrp],Key[msbin]]], mvec==GetMasses[#[[2]]]& ]] === 0,
-                                 ufmap[[Key[upnew],Key[monocrp],Key[msbin]]]=Append[ufmap[upnew][monocrp][msbin], {crp,newprops}]
+                              (* CoeffRules already exists *)
+                              kkM=ufmap[t][upnew][monocrp][msbin];
+                              (* Print["kkM=",kkM]; *)
+                              If[MatchQ[kkM, Missing[_, _]],
+                                 AppendTo[ufmap[[Key[t],Key[upnew],Key[monocrp]]], Association[msbin -> {{crp,newprops}}]],
+                                 
+                                 (* Mass distrib exists *)
+                                 (* aptmp=ufmap[upnew][monocrp]; *)
+                                 (* Print["Going to append to: ",ufmap[upnew][monocrp][msbin]]; *)
+                                 (* Print[msbin]; *)
+                                 
+                                 (* Fill vector of masses to compare with *)
+                                 GetMasses[pr_]:= List @@ ((#[[3]])& /@ pr);
+                                 mvec = GetMasses[newprops];
+                                 
+                                 Print["M vetor ",mvec];
+                                 If[Length[Select[ufmap[[Key[t],Key[upnew],Key[monocrp],Key[msbin]]], mvec==GetMasses[#[[2]]]& ]] === 0,
+                                    ufmap[[Key[t],Key[upnew],Key[monocrp],Key[msbin]]]=Append[ufmap[t][upnew][monocrp][msbin], {crp,newprops}]
                                 ]
                               (* If[FirstPosition[ufmap[[Key[upnew],Key[monocrp],Key[msbin]]],{crp,_}] == Missing["NotFound"], *)
                               (*    ufmap[[Key[upnew],Key[monocrp],Key[msbin]]]=Append[ufmap[upnew][monocrp][msbin], {crp,newprops}] *)
                               (*   ] *)
                               (* AppendTo[ufmap[upnew][monocrp][msbin], {crp,newprops}] *)
+                                ];
                              ];
                           ];
                        ];
-                     
 
                      (* ufmap = Map[Join @@ # &,Merge[{ufmap,ufprop},Identity]]; *)
                      (* ufmap = Map[If[Length[#]==1,First[#],MergeXX[#,Identity]]&,Merge[{ufmap,ufprop},Identity]]; *)
@@ -311,15 +325,19 @@ MapOnAux[ks_,legs_,prs_,{auxtop_,vertcons_},OptionsPattern[]] :=
            po = First[PolynomialOrderings[up + fp, xs, 1]];
            xsub = RewireX[po];
 
-           MapIndexed[(prsnew[[#1]] = prs[[#2[[1]]]])&, po];
+           (* Reverse ordering ??? *)
+           MapIndexed[(prsnew[[#2[[1]]]] = prs[[#1]])&, po];
 
            {upnew,ppnew,fpnew} = {up,pp,fp}/.xsub;
            crp      = CoefficientRules[ppnew,xs,DegreeReverseLexicographic];
            monocrp=(First /@ crp);
            Print["U=",upnew];
            Print["F=",fpnew];
+           
+           Print["Poly order:",po];
+           Print["prs:",prsnew];
 
-           topos=auxtop[[Key[upnew],Key[monocrp],Key[(If[#[[2]]===0,0,1]& /@ prsnew)]]];
+           topos=auxtop[[Key[Length[prsnew]],Key[upnew],Key[monocrp],Key[(If[#[[2]]===0,0,1]& /@ prsnew)]]];
 
            If[MatchQ[topos,Missing[_,_]],
               
@@ -355,7 +373,8 @@ MapOnAux[ks_,legs_,prs_,{auxtop_,vertcons_},OptionsPattern[]] :=
                           redvcr  = (Part[#[[1]],Flatten[auxpropnums]]==#[[2]])& /@ (Select[vcrules, (MatchQ[Union[Delete[#[[1]],auxpropnums]], {} | {0}])&]);
 
                           Print["RCVCR ",redvcr];
-
+                          subWrap = If[Length[legs] >= 2,(# -> wr[#])& /@ legs[[1;;-2]],{}];
+                          
                           (* 
                              TODO: 
                              
@@ -365,7 +384,7 @@ MapOnAux[ks_,legs_,prs_,{auxtop_,vertcons_},OptionsPattern[]] :=
                           
                           (* Create propagator vector with sign variables *)
                           pv = Transpose[{MapIndexed[(sgn[ #2[[1]] ] * #1[[1]])&, prsnew]}];
-                          sys   = (First[#[[1]].pv]-#[[2]])& /@ redvcr;
+                          sys   = (First[#[[1]].pv/.subWrap]-#[[2]])& /@ redvcr;
                           syscr = Flatten[CoefficientRules[#,ks]& /@ sys];
                           Print["Sys initial ",syscr];
                           sgnsys    = And @@ ((#[[2]]==0)& /@ syscr);
@@ -373,8 +392,20 @@ MapOnAux[ks_,legs_,prs_,{auxtop_,vertcons_},OptionsPattern[]] :=
                           Print["System ",sgnsys];
                           sgnvars   = Table[sgn[i], {i,Length[prsnew]}];
                           sgnconstr = And @@ Table[Abs[sgn[i]]==1, {i,Length[prsnew]}];
-                          Print["To solve ",{sgnsys && sgnconstr, Join[sgnvars,legs[[1;;-2]]]}];
-                          Print[Solve[sgnsys && sgnconstr, Join[sgnvars,legs[[1;;-2]]]]];
+                          (* Print["To solve ",{sgnsys && sgnconstr, Join[sgnvars,wr/@legs[[1;;-2]]]}]; *)
+
+                          subsol = If[Length[legs] >= 2,
+                                      Solve[sgnsys && sgnconstr, Join[sgnvars,wr/@legs[[1;;-2]]]],
+                                      Solve[sgnsys && sgnconstr, sgnvars]
+                                     ];
+                          Print["All solutions",subsol];
+                          
+                          (* First is with the smallest sum *)
+                          plusSubSol=SortBy[subsol,(-Plus @@ (sgnvars/.#))&];
+
+                          Print["Most positive", First[plusSubSol]];
+
+                          
                           Print["GGGG" ];
                           Print[pv];
                           Print["Need to map on ", vertcons[top]];
