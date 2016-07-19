@@ -187,7 +187,9 @@ ToposFromAux[ks_,legs_,prs_List] :=
                      (* Monomials, defined by powers in x[i] *)
                      monocrp=(First /@ crp);
                      (* Signature for mass distribution *)
-                     msbin=(If[#===0,0,1]& /@ ms);
+                     msbin=List @@ (If[#[[3]]===0,0,1]& /@ newprops);
+
+                     Print["Mass sign ", msbin];
                      (* ufprop=Association[upnew -> Association[monocrp -> Association[(If[#===0,0,1]& /@ ms) -> {crp,newprops}]]]; *)
 
                      (* Print["New rule: ",Association[upnew -> Association[monocrp -> Association[msbin -> {{crp,newprops}}]]]]; *)
@@ -217,10 +219,11 @@ ToposFromAux[ks_,legs_,prs_List] :=
                               (* Print[msbin]; *)
 
                               (* Fill vector of masses to compare with *)
-                              GetMasses[pr_]:= (#[[3]])& /@ pr;
+                              GetMasses[pr_]:= List @@ ((#[[3]])& /@ pr);
                               mvec = GetMasses[newprops];
-
-                              If[Length[Select[ufmap[[Key[upnew],Key[monocrp],Key[msbin]]], mvec==GetMasses[#[[2]]]& ]] == 0,
+                              
+                              Print["M vetor ",mvec];
+                              If[Length[Select[ufmap[[Key[upnew],Key[monocrp],Key[msbin]]], mvec==GetMasses[#[[2]]]& ]] === 0,
                                  ufmap[[Key[upnew],Key[monocrp],Key[msbin]]]=Append[ufmap[upnew][monocrp][msbin], {crp,newprops}]
                                 ]
                               (* If[FirstPosition[ufmap[[Key[upnew],Key[monocrp],Key[msbin]]],{crp,_}] == Missing["NotFound"], *)
@@ -320,7 +323,8 @@ MapOnAux[ks_,legs_,prs_,{auxtop_,vertcons_},OptionsPattern[]] :=
 
            If[MatchQ[topos,Missing[_,_]],
               
-              Print["Topology not found!"];
+              Print["Topology not found!", topos];
+              
               Return[Null],
 
               (* Topology found in DB *)
