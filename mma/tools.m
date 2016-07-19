@@ -165,7 +165,7 @@ ToposFromAux[ks_,legs_,prs_List] :=
            ufmap=Association[];
            (* Print[ufmap]; *)
            Do[
-               Block[{up,pp,fp,xs,ms,props,newprops,po,xsub,upnew,ppnew,fpnew,crp,monocrp,kkU,kkCR,kkM,msbin,topo},
+               Block[{up,pp,fp,xs,ms,props,newprops,po,xsub,upnew,ppnew,fpnew,crp,monocrp,kkU,kkCR,kkM,msbin,topo,mvec},
                      (* Print[i]; *)
                      {{up,pp,fp,xs,ms},props} = List @@ i;
                      topo = Head[i];
@@ -215,9 +215,17 @@ ToposFromAux[ks_,legs_,prs_List] :=
                               (* aptmp=ufmap[upnew][monocrp]; *)
                               (* Print["Going to append to: ",ufmap[upnew][monocrp][msbin]]; *)
                               (* Print[msbin]; *)
-                              If[FirstPosition[ufmap[[Key[upnew],Key[monocrp],Key[msbin]]],{crp,_}] == Missing["NotFound"],
+
+                              (* Fill vector of masses to compare with *)
+                              GetMasses[pr_]:= (#[[3]])& /@ pr;
+                              mvec = GetMasses[newprops];
+
+                              If[Length[Select[ufmap[[Key[upnew],Key[monocrp],Key[msbin]]], mvec==GetMasses[#[[2]]]& ]] == 0,
                                  ufmap[[Key[upnew],Key[monocrp],Key[msbin]]]=Append[ufmap[upnew][monocrp][msbin], {crp,newprops}]
                                 ]
+                              (* If[FirstPosition[ufmap[[Key[upnew],Key[monocrp],Key[msbin]]],{crp,_}] == Missing["NotFound"], *)
+                              (*    ufmap[[Key[upnew],Key[monocrp],Key[msbin]]]=Append[ufmap[upnew][monocrp][msbin], {crp,newprops}] *)
+                              (*   ] *)
                               (* AppendTo[ufmap[upnew][monocrp][msbin], {crp,newprops}] *)
                              ];
                           ];
@@ -287,7 +295,10 @@ ToposFromAux[ks_,legs_,prs_List] :=
            {ufmap,vertexCons}
           ]
 
-MapOnAux[ks_,legs_,prs_,{auxtop_,vertcons_}] :=
+
+
+Options[MapOnAux]={ExactMatch->True};
+MapOnAux[ks_,legs_,prs_,{auxtop_,vertcons_},OptionsPattern[]] :=
     Module[{up,pp,fp,xs,po,upnew,ppnew,fpnew,crp,monocrp,fkey,ds,ms,
             possibleProps,nonZeroSymb,mappedWithMass,prsnew=prs},
            (* ds = First[#]^2& /@ prs; *)
@@ -297,7 +308,7 @@ MapOnAux[ks_,legs_,prs_,{auxtop_,vertcons_}] :=
            po = First[PolynomialOrderings[up + fp, xs, 1]];
            xsub = RewireX[po];
 
-           prsnew = MapIndexed[(prsnew[[#1]] = prs[[#2[[1]]]])&, po];
+           MapIndexed[(prsnew[[#1]] = prs[[#2[[1]]]])&, po];
 
            {upnew,ppnew,fpnew} = {up,pp,fp}/.xsub;
            crp      = CoefficientRules[ppnew,xs,DegreeReverseLexicographic];
@@ -305,7 +316,7 @@ MapOnAux[ks_,legs_,prs_,{auxtop_,vertcons_}] :=
            Print["U=",upnew];
            Print["F=",fpnew];
 
-           topos=auxtop[[Key[upnew],Key[monocrp],Key[(If[#[[2]]===0,0,1]& /@ prs)]]];
+           topos=auxtop[[Key[upnew],Key[monocrp],Key[(If[#[[2]]===0,0,1]& /@ prsnew)]]];
 
            If[MatchQ[topos,Missing[_,_]],
               
@@ -317,15 +328,60 @@ MapOnAux[ks_,legs_,prs_,{auxtop_,vertcons_}] :=
               Print["Mapping on top:",topos];
               (* topos[[]]; *)
               
-              If[ExactMatch/.opt,
+              If[OptionValue[ExactMatch],
                  
                  (* Check masses for exact match *)
+                 Print["Exact match"];
+                 GetMasses[pr_]:= List @@ ((#[[3]])& /@ pr);
 
-                 (* TODO *)
+                 mvec = (#[[2]])& /@ prsnew;
+                 extop=Select[topos,(GetMasses[#[[2]]] == mvec)&];
+                 
+                 If[Length[extop] != 1,
+                    Print["Exact mass distribution not found!"];
+                    Return[Null],
+                    
+                    Block[{top,pv,auxpropnums,vcrules,redvcr},
+                          extop = extop[[1]];
+                          top = Head[extop[[2]]];
+                          (* Extract numbers of propagators from AUX  top *)
+                          (* We apply conservation rules only with such numbers *)
+                          auxpropnums = List @@ ({First[#]}& /@ extop[[2]]);
+                          vcrules = vertcons[top];
+                          redvcr  = (Part[#[[1]],Flatten[auxpropnums]]==#[[2]])& /@ (Select[vcrules, (MatchQ[Union[Delete[#[[1]],auxpropnums]], {} | {0}])&]);
+
+                          Print["RCVCR ",redvcr];
+
+                          (* 
+                             TODO: 
+                             
+                             Coefficients in front of loop mometum equal
+
+                             *)
+                          
+                          (* Create propagator vector with sign variables *)
+                          pv = Transpose[{MapIndexed[(sgn[ #2[[1]] ] * #1[[1]])&, prsnew]}];
+                          sys   = (First[#[[1]].pv]-#[[2]])& /@ redvcr;
+                          syscr = Flatten[CoefficientRules[#,ks]& /@ sys];
+                          Print["Sys initial ",syscr];
+                          sgnsys    = And @@ ((#[[2]]==0)& /@ syscr);
+                          Print["ks: ",ks];
+                          Print["System ",sgnsys];
+                          sgnvars   = Table[sgn[i], {i,Length[prsnew]}];
+                          sgnconstr = And @@ Table[Abs[sgn[i]]==1, {i,Length[prsnew]}];
+                          Print["To solve ",{sgnsys && sgnconstr, Join[sgnvars,legs[[1;;-2]]]}];
+                          Print[Solve[sgnsys && sgnconstr, Join[sgnvars,legs[[1;;-2]]]]];
+                          Print["GGGG" ];
+                          Print[pv];
+                          Print["Need to map on ", vertcons[top]];
+                          
+                         ]
+                   ]
                  ,
                  (* First match is ok *)
-
+                 Print["Not Exact match"];
                  (* TODO *)
+                 Print[Last[topos[[1]]]];
                 ]
               
              ]
