@@ -163,6 +163,15 @@ and $F$-polynomial determines how masses are distributed between lines.
                {0,  0} -> {{{{1, 1} -> -p1^2}, T00[{1, k1,       0}, {2, k1 + p1, 0}]}}|>|>|>
 \end{verbatim}
 
+\subsection{External momentum flow}
+\label{sec:extflow}
+
+It is possible to map diagram with $p_1,\dots,p_n$ external momentum on topology
+with $p_1,\dots,p_k,k<n$ external momenta. This mean that momenta flow
+for $p_{k+1},\dots,p_n$ kept according to flow in original
+diagram. Momentum to be kept should be marked as optional parameter of
+\ctt{MapOnAux} function as \ctt{SplitMomenta->\{p2,p3,...\}}.
+
 \subsection{Internal structure}
 
 For set of diagrams it is possible to define ``projections'' i.e.

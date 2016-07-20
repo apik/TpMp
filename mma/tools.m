@@ -416,23 +416,6 @@ Options[MapOnAuxExact]={
 MapOnAuxExact[ks_,legs_,prs_,{auxtop_,vertcons_},OptionsPattern[]] :=
     Module[{up,pp,fp,xs,po,upnew,ppnew,fpnew,crp,monocrp,fkey,ds,ms,
             possibleProps,nonZeroSymb,mappedWithMass,prsnew},
-           (* ds = First[#]^2& /@ prs; *)
-           (* ms = Last[#]^2&  /@ prs; *)
-           
-           (* prs = If[OptionValue[RemoveDots], *)
-           (*          Print["Removing dots before mapping"]; *)
-           (*          (\* Print[RemoveDotsUF[up,fp]]; *\) *)
-                    
-                    
-           (*          Print["Eq: ",Tally[prsWdots, Expand[((#1[[1]])^2 - (#2[[1]])^2)] === 0&] ]; *)
-                    
-           (*          First /@ Tally[prsWdots, Expand[((#1[[1]])^2 - (#2[[1]])^2)] === 0&] *)
-                    
-           (*          , *)
-           (*          Print["ATTENTION: dots not removed!!!"]; *)
-           (*          prsWdots *)
-           (*         ]; *)
-           
            Print["PRS: ",prs];
 
            prsnew = prs;
@@ -459,7 +442,7 @@ MapOnAuxExact[ks_,legs_,prs_,{auxtop_,vertcons_},OptionsPattern[]] :=
               
               Print["Topology not found!", topos];
               
-              Return[Null],
+              Return[{Null,Null}],
 
               (* Topology found in DB *)
               
@@ -477,7 +460,7 @@ MapOnAuxExact[ks_,legs_,prs_,{auxtop_,vertcons_},OptionsPattern[]] :=
                  
                  If[Length[extop] != 1,
                     Print["Exact mass distribution not found!"];
-                    Return[Null],
+                    Return[{Null,Null}],
                     
                     Block[{top,pv,auxpropnums,vcrules,redvcr},
                           extop = extop[[1]];
@@ -547,8 +530,8 @@ MapOnAuxExact[ks_,legs_,prs_,{auxtop_,vertcons_},OptionsPattern[]] :=
            
           ]
     
-    
-    
+
+
 
 (********************************************************************************)
 (**                                                                            **)
@@ -559,28 +542,75 @@ MapOnAuxExact[ks_,legs_,prs_,{auxtop_,vertcons_},OptionsPattern[]] :=
 
 Options[MapOnAux]={
     ExactMatch   -> True,         (* Match only when all mass symbols are equal *)
-    KeepMomentum -> {},           (* Keep routing of momentum specified, mapping on 
+    SplitMomenta -> {},           (* Keep routing of momentum specified, mapping on 
                                      topo where such momentum nullified *)
     Verbose      -> False};       (* Show more output *)
 
-MapOnAux[ks_,legs_,prsWdots_,{auxtop_,vertcons_},OptionsPattern[]] :=
-    Module[{prsNoDots,top,mInt,mExt,dsub},
 
-           Print["[1] - removing dots"];
-
-           Print[RemoveDots[prsWdots]];
-           Print[prsWdots];
-
+MapCorrectLegs[ks_,legs_,prsWdots_,{auxtop_,vertcons_}]:=
+    Module[{rdTo,rdFrom,prsNoDots,mInt,mExt,dsub},
+           (* Print[RemoveDots[prsWdots]]; *)
+           (* Print[prsWdots]; *)
+           
            (* Removing dots *)
            {rdTo,rdFrom} = RemoveDots[prsWdots];
            prsNoDots     = Last /@ rdFrom;
-
+           
            (* Mapping rules *)
            {mInt,mExt} = MapOnAuxExact[ks,legs,prsNoDots,{auxtop,vertcons}];
            
-           dsub={};
-           MapIndexed[AppendTo[dsub,d[#2[[1]]] -> #1[[2,1;;2]]]&, mInt];
+           If[mInt === Null || mExt === Null,
+              Return[Missing[prsNoDots]];
+              ,
+              
+              dsub={};
+              MapIndexed[AppendTo[dsub,d[#2[[1]]] -> #1[[2,1;;2]]]&, mInt];
+              
+              Print["dsub:",dsub];
+              Return[Head[mInt] @@ (rdTo/.dsub)];
+             ];
            
-           Print["dsub:",dsub];
-           Head[mInt] @@ (rdTo/.dsub)
+          ]
+
+
+MapOnAux[ks_,legs_,prsWdots_,{auxtop_,vertcons_},OptionsPattern[]] :=
+    Module[{mapres,subZeroSplit,splitProps,splitLHS},
+           
+           Print["[1] - removing dots"];
+           
+           
+           
+           If[OptionValue[SplitMomenta] === {},
+              
+              (* Do not split *)
+              Print["Momentum splitting not needed"];
+              
+              mapres = MapCorrectLegs[ks,legs,prsWdots,{auxtop,vertcons}];
+              Print["Mappp ",mapres];
+              mapres
+              ,
+              
+              (* Momenta splitting *)
+              
+              subZeroSplit = (# -> 0)& /@ OptionValue[SplitMomenta];
+              Print[subZeroSplit];
+              
+              SplitMom[m_] := {m/.subZeroSplit, Expand[m - (m/.subZeroSplit)]};
+              splitProps = Map[{SplitMom[#[[1]]],#[[2]]}&, prsWdots];
+              Print[splitProps];
+              
+              splitLHS = ({#[[1,1]],#[[2]]})& /@ splitProps; 
+              
+
+              mapres = MapCorrectLegs[ks,DeleteCases[legs/.subZeroSplit,0],splitLHS,{auxtop,vertcons}];
+              Print["MAPRES    ====  ",mapres];
+              If[Head[mapres] === Missing,
+                 Return[mapres];
+                 ,
+
+                 Print["Mappp ", mapres];
+                 Return[Head[mapres] @@ MapThread[ {Plus @@ #1[[1]],#1[[2]]} -> {#2[[2,1]] + #1[[1,2]],#2[[2,2]]}&,{splitProps, List @@ mapres}]];
+                ]
+             ]
+           
           ]
