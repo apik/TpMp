@@ -351,38 +351,87 @@ RemoveDotsUF[U_,F_]:=
           ]
 
 
+
+
+
 (* TODO *)
 (* 
    - Removing dots
    - Embeding topologies with dots instead of imaginary legs
 *)
 
+(********************************************************************************)
+(**                                                                            **)
+(**                 Prepare substitution rules with duplicated                 **)
+(**                  propagators replaced with new symbols                     **)
+(**                                                                            **)
+(********************************************************************************)
+
+RemoveDots[prs_]:=
+    Module[{sqp},
+
+           (* Combine propagators with equal squares *)
+           sqp = Last /@ Normal[GroupBy[prs,Expand[#[[1]]^2]&]];
+
+           (* Check lines with equal momentum to have equal masses *)
+           If[And @@ ((SameQ @@(Last/@ #))& /@ sqp),
+              
+              mapTo={};
+              mapFrom={};
+              Do[
+                  Block[{samepr},
+                        (* List of propagators with the same momentum *)
+                        samepr = sqp[[i]];
+
+                        (* Rules p[i]->d[i] *)
+                        (AppendTo[mapTo, # -> {d[i]*Cancel[#[[1]]/samepr[[1,1]]],#[[2]] }])& /@ samepr;
+                        (* Back rules *)
+                        AppendTo[mapFrom, {d[i],samepr[[1,2]]} -> samepr[[1]]];
+                       ],{i,Length[sqp]}];
+              Return[{mapTo,mapFrom}];
+              ,
+
+              (* Lines with different masses present *)
+              Print["Different masses with same momentum, partial fractioning needed."];
+              Return[Null];
+             ]
+          ]
 
 
-Options[MapOnAux]={
+(*************************** 
+  
+  Main function for topology mapping, input diagram must be in form:
+  
+  - No dots on lines
+  - No additional external legs
+   
+  ***************************)
+
+
+
+Options[MapOnAuxExact]={
     ExactMatch -> True,         (* Match only when all mass symbols are equal *)
-    RemoveDots -> True,         (* Remove dots from lines i.e. with eqaul momentum *)
     Verbose    -> False};       (* Show more output *)
 
-MapOnAux[ks_,legs_,prsWdots_,{auxtop_,vertcons_},OptionsPattern[]] :=
-    Module[{prs,up,pp,fp,xs,po,upnew,ppnew,fpnew,crp,monocrp,fkey,ds,ms,
+MapOnAuxExact[ks_,legs_,prs_,{auxtop_,vertcons_},OptionsPattern[]] :=
+    Module[{up,pp,fp,xs,po,upnew,ppnew,fpnew,crp,monocrp,fkey,ds,ms,
             possibleProps,nonZeroSymb,mappedWithMass,prsnew},
            (* ds = First[#]^2& /@ prs; *)
            (* ms = Last[#]^2&  /@ prs; *)
            
-           prs = If[OptionValue[RemoveDots],
-              Print["Removing dots before mapping"];
-              (* Print[RemoveDotsUF[up,fp]]; *)
-              
-              
-              Print["Eq: ",Tally[prsWdots, Expand[((#1[[1]])^2 - (#2[[1]])^2)] === 0&] ];
-              
-              First /@ Tally[prsWdots, Expand[((#1[[1]])^2 - (#2[[1]])^2)] === 0&]
-              
-              ,
-              Print["ATTENTION: dots not removed!!!"];
-              prsWdots
-             ];
+           (* prs = If[OptionValue[RemoveDots], *)
+           (*          Print["Removing dots before mapping"]; *)
+           (*          (\* Print[RemoveDotsUF[up,fp]]; *\) *)
+                    
+                    
+           (*          Print["Eq: ",Tally[prsWdots, Expand[((#1[[1]])^2 - (#2[[1]])^2)] === 0&] ]; *)
+                    
+           (*          First /@ Tally[prsWdots, Expand[((#1[[1]])^2 - (#2[[1]])^2)] === 0&] *)
+                    
+           (*          , *)
+           (*          Print["ATTENTION: dots not removed!!!"]; *)
+           (*          prsWdots *)
+           (*         ]; *)
            
            Print["PRS: ",prs];
 
@@ -495,5 +544,43 @@ MapOnAux[ks_,legs_,prsWdots_,{auxtop_,vertcons_},OptionsPattern[]] :=
                 ]
               
              ]
-          
+           
+          ]
+    
+    
+    
+
+(********************************************************************************)
+(**                                                                            **)
+(**   Map on AUX topology removing dots before and keep set of exernal         **)
+(**   moment untuched                                                          **)
+(**                                                                            **)
+(********************************************************************************)
+
+Options[MapOnAux]={
+    ExactMatch   -> True,         (* Match only when all mass symbols are equal *)
+    KeepMomentum -> {},           (* Keep routing of momentum specified, mapping on 
+                                     topo where such momentum nullified *)
+    Verbose      -> False};       (* Show more output *)
+
+MapOnAux[ks_,legs_,prsWdots_,{auxtop_,vertcons_},OptionsPattern[]] :=
+    Module[{prsNoDots,top,mInt,mExt,dsub},
+
+           Print["[1] - removing dots"];
+
+           Print[RemoveDots[prsWdots]];
+           Print[prsWdots];
+
+           (* Removing dots *)
+           {rdTo,rdFrom} = RemoveDots[prsWdots];
+           prsNoDots     = Last /@ rdFrom;
+
+           (* Mapping rules *)
+           {mInt,mExt} = MapOnAuxExact[ks,legs,prsNoDots,{auxtop,vertcons}];
+           
+           dsub={};
+           MapIndexed[AppendTo[dsub,d[#2[[1]]] -> #1[[2,1;;2]]]&, mInt];
+           
+           Print["dsub:",dsub];
+           Head[mInt] @@ (rdTo/.dsub)
           ]
