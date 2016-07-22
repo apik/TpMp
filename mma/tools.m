@@ -134,6 +134,30 @@ RewireX[po_] := MapIndexed[(x[#1] -> x[#2[[1]]])&, po];
    - Add possibility to map on exactly specified different masses and not only on signature
  *)
 Options[ToposFromAux]={Verbose->False};
+
+
+ShrinkLine[ks_,top_]:= 
+    Module[{upfxm,withscale,nextlevel},
+           NoNum[l_]:=(#[[2;;3]])& /@ l;
+
+           Print["Shrinking one line from ", Length[top], " in topology ", Head[top]];
+           upfxm = ({UFP[ks,NoNum[#]],#})& /@ Subsets[List @@ top,{Length[top] - 1}];
+           withscale=(Head[top] @@ #)& /@ Select[upfxm,Not[IsScaleless[#[[1,1]]*#[[1,3]],#[[1,4]]]]&];
+
+           nextlevel = (Head[top]@@Last[#])& /@ withscale;
+           (* Print["WS:",nextlevel]; *)
+           
+           If[Length[nextlevel] > 0,
+              sl = Join @@ DeleteCases[ShrinkLine[ks,#]& /@ nextlevel,{}];
+              (* Print["Ret sl:",sl]; *)
+              If[sl =!= {{}},
+                 Join[withscale,sl],
+                 withscale
+                ],
+              withscale
+             ]
+          ];
+
 ToposFromAux[ks_,legs_,prs_List,OptionsPattern[]] :=
     Module[{ds,ms,ufmap,scf,legSubsets,vertexCons},
            (* ds = First[#]^2& /@ prs; *)
@@ -143,16 +167,22 @@ ToposFromAux[ks_,legs_,prs_List,OptionsPattern[]] :=
                Block[{upfxm,scfTop,top},
                      top = MapIndexed[(Prepend[#1,#2[[1]]])&,topNoNum];
                      (* Print[Subsets[List @@ top,{Length[ks],Length[top]}]]; *)
-                     NoNum[l_]:=(#[[2;;3]])& /@ l;
-                     upfxm = ({UFP[ks,NoNum[#]],#})& /@ Subsets[List @@ top,{Length[ks],Length[top]}];
-                     (* Print["U,P,F,... ",upfxm]; *)
-                     scfTop= (Head[top] @@ #)& /@ Select[upfxm,Not[IsScaleless[#[[1,1]]*#[[1,3]],#[[1,4]]]]&];
-                     (* scfTop= (Head[top] @@ #)& /@ upfxm; *)
-                     (* Print["SCFTOP:::::::",scfTop]; *)
-                     scf=Join[scf,scfTop];
+
+                     Print["Try topo: ",top];
+                    
+                     (* Print[ShrinkLine[ks,top]]; *)
+                     
+                     (* NoNum[l_]:=(#[[2;;3]])& /@ l; *)
+                     (* upfxm = ({UFP[ks,NoNum[#]],#})& /@ Subsets[List @@ top,{Length[ks],Length[top]}]; *)
+                     (* (\* Print["U,P,F,... ",upfxm]; *\) *)
+                     (* scfTop= (Head[top] @@ #)& /@ Select[upfxm,Not[IsScaleless[#[[1,1]]*#[[1,3]],#[[1,4]]]]&]; *)
+                     (* (\* scfTop= (Head[top] @@ #)& /@ upfxm; *\) *)
+                     (* (\* Print["SCFTOP:::::::",scfTop]; *\) *)
+                     scf=Join[scf,ShrinkLine[ks,top]];
                     ]
                , {topNoNum, prs}
              ];
+
 
            (* Print["SCFFF:",scf]; *)
            (* Print["OOOOOOOOOOOOOOOOOOOO"]; *)
