@@ -133,15 +133,18 @@ RewireX[po_] := MapIndexed[(x[#1] -> x[#2[[1]]])&, po];
 (* TODO:
    - Add possibility to map on exactly specified different masses and not only on signature
  *)
-Options[ToposFromAux]={Verbose->False};
-
-
-ShrinkLine[ks_,top_]:= 
+Options[ShrinkLine]=
+    {
+        MaxProps->Null                (* Maximal number of propagators in generated topology *)
+    };
+ShrinkLine[ks_,top_,OptionsPattern[]]:= 
     Module[{upfxm,withscale,nextlevel},
            NoNum[l_]:=(#[[2;;3]])& /@ l;
 
-           Print["Shrinking one line from ", Length[top], " in topology ", Head[top]];
-           upfxm = ({UFP[ks,NoNum[#]],#})& /@ Subsets[List @@ top,{Length[top] - 1}];
+           Print["Shrinking to get lines = ",If[OptionValue[MaxProps] =!= Null,OptionValue[MaxProps],Length[top]], " in topology ", Head[top]," with ",Length[top]," propagators"];
+           (* On first step we look for subsets of fixed length which may be smaller than number of irreducible scalar products *)
+           upfxm = ({UFP[ks,NoNum[#]],#})& /@ Subsets[List @@ top,{If[OptionValue[MaxProps] =!= Null,OptionValue[MaxProps],Length[top]-1]}];
+           Print["Generated ",Length[upfxm]," subtopos"];
            withscale=(Head[top] @@ #)& /@ Select[upfxm,Not[IsScaleless[#[[1,1]]*#[[1,3]],#[[1,4]]]]&];
 
            nextlevel = (Head[top]@@Last[#])& /@ withscale;
@@ -158,6 +161,11 @@ ShrinkLine[ks_,top_]:=
              ]
           ];
 
+Options[ToposFromAux]=
+    {
+        MaxProps->Null,                (* Maximal number of propagators in generated topology *)
+        Verbose->False
+    };
 ToposFromAux[ks_,legs_,prs_List,OptionsPattern[]] :=
     Module[{ds,ms,ufmap,scf,legSubsets,vertexCons},
            (* ds = First[#]^2& /@ prs; *)
@@ -169,20 +177,13 @@ ToposFromAux[ks_,legs_,prs_List,OptionsPattern[]] :=
                      (* Print[Subsets[List @@ top,{Length[ks],Length[top]}]]; *)
 
                      Print["Try topo: ",top];
-                    
-                     (* Print[ShrinkLine[ks,top]]; *)
                      
-                     (* NoNum[l_]:=(#[[2;;3]])& /@ l; *)
-                     (* upfxm = ({UFP[ks,NoNum[#]],#})& /@ Subsets[List @@ top,{Length[ks],Length[top]}]; *)
-                     (* (\* Print["U,P,F,... ",upfxm]; *\) *)
-                     (* scfTop= (Head[top] @@ #)& /@ Select[upfxm,Not[IsScaleless[#[[1,1]]*#[[1,3]],#[[1,4]]]]&]; *)
-                     (* (\* scfTop= (Head[top] @@ #)& /@ upfxm; *\) *)
-                     (* (\* Print["SCFTOP:::::::",scfTop]; *\) *)
-                     scf=Join[scf,ShrinkLine[ks,top]];
+                     scf=Join[scf,ShrinkLine[ks,top,MaxProps->If[OptionValue[MaxProps] =!= Null,OptionValue[MaxProps],Length[top]]]];
                     ]
                , {topNoNum, prs}
              ];
 
+           Print["Scalefull momentum subsets generated, unique tipology finding started"];
 
            (* Print["SCFFF:",scf]; *)
            (* Print["OOOOOOOOOOOOOOOOOOOO"]; *)
@@ -338,7 +339,7 @@ ToposFromAux[ks_,legs_,prs_List,OptionsPattern[]] :=
                      
                      AppendTo[vertexCons,topo->exlst];
                     ],{topprops,prs}];
-
+           
            
            {ufmap,vertexCons}
           ]
@@ -492,6 +493,7 @@ MapOnAuxExact[ks_,legs_,prs_,{auxtop_,vertcons_},OptionsPattern[]] :=
                     Print["Exact mass distribution not found!"];
                     Return[{Null,Null}],
                     
+                    (* ELSE *)
                     Block[{top,pv,auxpropnums,vcrules,redvcr},
                           extop = extop[[1]];
                           top = Head[extop[[2]]];
@@ -552,8 +554,75 @@ MapOnAuxExact[ks_,legs_,prs_,{auxtop_,vertcons_},OptionsPattern[]] :=
                  ,
                  (* First match is ok *)
                  Print["Not Exact match"];
+                 GetMassesSig[pr_]:= List @@ ((If[#[[3]] =!= 0,1,0])& /@ pr);
+                 (* Get signature for massless lines m1,m2,0,m4 -> {1,1,0,1} *)
+                 mvec = (If[#[[2]] =!= 0,1,0])& /@ prsnew;
+                 extop=Select[topos,(GetMassesSig[#[[2]]] == mvec)&];
+                 Print["Masses ",topos];
+
+                 If[Length[extop] == 0,
+                    Print["Mass distribution matching pattern not found!"];
+                    Return[{Null,Null}],
+                    (* ELSE *)
+                    Block[{top,pv,auxpropnums,vcrules,redvcr},
+                          extop = extop[[1]];
+                          top = Head[extop[[2]]];
+                          (* Extract numbers of propagators from AUX  top *)
+                          (* We apply conservation rules only with such numbers *)
+                          auxpropnums = List @@ ({First[#]}& /@ extop[[2]]);
+                          vcrules = vertcons[top];
+                          redvcr  = (Part[#[[1]],Flatten[auxpropnums]]==#[[2]])& /@ (Select[vcrules, (MatchQ[Union[Delete[#[[1]],auxpropnums]], {} | {0}])&]);
+
+                          (* Print["RCVCR ",redvcr]; *)
+                          subWrap = If[Length[legs] >= 2,(# -> wr[#])& /@ legs[[1;;-2]],{}];
+                          
+                          (* 
+                             TODO: 
+                             
+                             Coefficients in front of loop mometum equal
+
+                             *)
+                          
+                          (* Create propagator vector with sign variables *)
+                          pv = Transpose[{MapIndexed[(sgn[ #2[[1]] ] * #1[[1]])&, prsnew]}];
+                          sys   = (First[#[[1]].pv/.subWrap]-#[[2]])& /@ redvcr;
+                          syscr = Flatten[CoefficientRules[#,ks]& /@ sys];
+                          (* Print["Sys initial ",syscr]; *)
+                          sgnsys    = And @@ ((#[[2]]==0)& /@ syscr);
+                          (* Print["ks: ",ks]; *)
+                          (* Print["System ",sgnsys]; *)
+                          sgnvars   = Table[sgn[i], {i,Length[prsnew]}];
+                          sgnconstr = And @@ Table[Abs[sgn[i]]==1, {i,Length[prsnew]}];
+                          (* Print["To solve ",{sgnsys && sgnconstr, Join[sgnvars,wr/@legs[[1;;-2]]]}]; *)
+
+                          subsol = If[Length[legs] >= 2,
+                                      Solve[sgnsys && sgnconstr, Join[sgnvars,wr/@legs[[1;;-2]]]],
+                                      Solve[sgnsys && sgnconstr, sgnvars]
+                                     ];
+                          (* Print["All solutions",subsol]; *)
+                          
+                          (* First is with the smallest sum *)
+                          plusSubSol=SortBy[subsol,(-Plus @@ (sgnvars/.#))&];
+
+                          (* Print["Most positive", First[plusSubSol]]; *)
+
+                          (* Decripting back *)
+                          
+                          prsBack = prsnew;
+                          MapIndexed[(prsBack[[#1]] = (prsnew[[#2[[1]]]] -> 
+                                                       {p[extop[[2,#2[[1]],1]]]/sgn[#2[[1]]], (* Momenum in aux top *)
+                                                        extop[[2,#2[[1]],2]]/sgn[#2[[1]]],    (* Momentum *)
+                                                        extop[[2,#2[[1]],3]]                  (* Mass *)
+                                                       } ))&, po];
+                          
+                          If[Length[legs] >= 2,
+                             {top @@ prsBack, wr/@legs[[1;;-2]]},
+                             {top @@ prsBack, {}}
+                            ]/.First[plusSubSol]
+                         ]
+                   ]
                  (* TODO *)
-                 Print[Last[topos[[1]]]];
+                 (* Print[topos]; *)
                 ]
               
              ]
@@ -576,8 +645,14 @@ Options[MapOnAux]={
                                      topo where such momentum nullified *)
     Verbose      -> False};       (* Show more output *)
 
+Options[MapCorrectLegs]={
+    ExactMatch   -> True,         (* Match only when all mass symbols are equal *)
+    SplitMomenta -> {},           (* Keep routing of momentum specified, mapping on 
+                                     topo where such momentum nullified *)
+    Verbose      -> False};       (* Show more output *)
 
-MapCorrectLegs[ks_,legs_,prsWdots_,{auxtop_,vertcons_}]:=
+
+MapCorrectLegs[ks_,legs_,prsWdots_,{auxtop_,vertcons_},OptionsPattern[]]:=
     Module[{rdTo,rdFrom,prsNoDots,mInt,mExt,dsub},
            (* Print[RemoveDots[prsWdots]]; *)
            (* Print[prsWdots]; *)
@@ -587,7 +662,7 @@ MapCorrectLegs[ks_,legs_,prsWdots_,{auxtop_,vertcons_}]:=
            prsNoDots     = Last /@ rdFrom;
            
            (* Mapping rules *)
-           {mInt,mExt} = MapOnAuxExact[ks,legs,prsNoDots,{auxtop,vertcons}];
+           {mInt,mExt} = MapOnAuxExact[ks,legs,prsNoDots,{auxtop,vertcons},ExactMatch->OptionValue[ExactMatch]];
            
            If[mInt === Null || mExt === Null,
               Return[Missing[prsNoDots]];
@@ -615,7 +690,7 @@ MapOnAux[ks_,legs_,prsWdots_,{auxtop_,vertcons_},OptionsPattern[]] :=
               (* Do not split *)
               Print["Momentum splitting not needed"];
               
-              mapres = MapCorrectLegs[ks,legs,prsWdots,{auxtop,vertcons}];
+              mapres = MapCorrectLegs[ks,legs,prsWdots,{auxtop,vertcons},ExactMatch->OptionValue[ExactMatch]];
               Print["Mappp ",mapres];
               mapres
               ,
@@ -632,7 +707,7 @@ MapOnAux[ks_,legs_,prsWdots_,{auxtop_,vertcons_},OptionsPattern[]] :=
               splitLHS = ({#[[1,1]],#[[2]]})& /@ splitProps; 
               
 
-              mapres = MapCorrectLegs[ks,DeleteCases[legs/.subZeroSplit,0],splitLHS,{auxtop,vertcons}];
+              mapres = MapCorrectLegs[ks,DeleteCases[legs/.subZeroSplit,0],splitLHS,{auxtop,vertcons},ExactMatch->OptionValue[ExactMatch]];
               Print["MAPRES    ====  ",mapres];
               If[Head[mapres] === Missing,
                  Return[mapres];
