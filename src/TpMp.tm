@@ -94,14 +94,17 @@
                                             Background -> White]}}]
           ];
 
+
 // C++ part
 :Begin:
 :Function: LoadQGRAF
-:Pattern: LoadQGRAF[fname_]
-:Arguments: {fname}
-:ArgumentTypes: {ByteString}
+:Pattern: LoadQGRAF[fname_, OptionsPattern[]]
+:Arguments: {fname, If[OptionValue[OverWriteDB],1,0]}
+:ArgumentTypes: {ByteString, Integer}
 :ReturnType: Manual
 :End:
+
+:Evaluate: Options[LoadQGRAF]={OverWriteDB->False};
     
 :Begin:
 :Function: LoadDB

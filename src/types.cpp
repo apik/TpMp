@@ -107,6 +107,48 @@ DiagramRecord::DiagramRecord(YAML::Node n)
     }
 
   std::cout << "We add " << props.size() << " props" << std::endl;
+
+  std::cout << n.begin()->second["verts"] << std::endl;
+
+  for (YAML::const_iterator it = n.begin()->second["verts"].begin(); it != n.begin()->second["verts"].end(); ++it) 
+    {
+      Vert v;
+      v.id     = it->first.as<int>();
+      v.type   = it->second["struct"].as<std::string>();
+
+      std::cout << "vlen: " << it->second["fields"].size() << std::endl;
+
+      std::vector<std::string> ftypes;
+      for (YAML::const_iterator fit = it->second["fields"].begin(); 
+           fit != it->second["fields"].end(); ++fit) 
+        {
+          ftypes.push_back(fit->as<std::string>());
+          std::cout << fit->as<std::string>() << std::endl;
+        }
+
+      std::vector<int> fids;
+      
+      for (YAML::const_iterator fit = it->second["props"].begin(); 
+           fit != it->second["props"].end(); ++fit) 
+        {
+          int rawid = fit->as<int>();
+          // Propagator
+          if(rawid > 0)
+            {
+              v.ids.push_back(rawid);
+              v.internal.push_back(true);
+            }
+          // External leg
+          else
+            {
+              v.ids.push_back((1-rawid)/2); // we decode id=-2j+1
+              v.internal.push_back(false);
+            }
+        }
+      
+      verts.push_back(v);
+    }
+
 }
 
 void DiagramRecord::propStr(const std::string& s)

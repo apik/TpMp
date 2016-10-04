@@ -49,12 +49,12 @@ struct Leg
 
 struct Vert
 {
+  // connected fields (ex. FFV)
+  std::string type;
   int id;
-  int u;
-  int v;
-  std::string field;
-  int type;
-  std::string mom;
+  // True if is interanl line
+  std::vector<bool> internal;
+  std::vector<int> ids;
 };
 
 
@@ -68,6 +68,8 @@ public:
   int sign;
   std::vector<Prop> props;
   std::vector<Leg>  legs;
+  std::vector<Vert> verts;
+
   DiagramRecord()
   {
   }

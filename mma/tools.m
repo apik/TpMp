@@ -204,8 +204,8 @@ ToposFromAux[ks_,legs_,prs_List,OptionsPattern[]] :=
                      (* Print["Topology : ",topo]; *)
                      newprops  = props;
                      (* Find polynomial ordering *)
-                     po = First[PolynomialOrderings[up + fp, xs, 1]];
-
+                     (* po = First[PolynomialOrderings[up + fp, xs, 1]]; *)
+                     po = First[PolynomialOrderings[up + pp, xs, 1]];
                      (* Print["Poly order:",po]; *)
                      (* Add numbering inside TOPO to propagators *)
                      (* STRANGE !!!!!!!! *)
@@ -452,11 +452,15 @@ MapOnAuxExact[ks_,legs_,prs_,{auxtop_,vertcons_},OptionsPattern[]] :=
            prsnew = prs;
            {up,pp,fp,xs,ms} = UFP[ks,prs];
 
-           po = First[PolynomialOrderings[up + fp, xs, 1]];
+           po = First[PolynomialOrderings[up + pp, xs, 1]];
+           (* po = First[PolynomialOrderings[up + fp, xs, 1]]; *)
            xsub = RewireX[po];
 
            (* Reverse ordering ??? *)
            MapIndexed[(prsnew[[#2[[1]]]] = prs[[#1]])&, po];
+
+           Print["Old props order:", prs];
+           Print["New props order:", prsnew];
 
            {upnew,ppnew,fpnew} = {up,pp,fp}/.xsub;
            crp      = CoefficientRules[ppnew,xs,DegreeReverseLexicographic];
@@ -487,6 +491,7 @@ MapOnAuxExact[ks_,legs_,prs_,{auxtop_,vertcons_},OptionsPattern[]] :=
                  GetMasses[pr_]:= List @@ ((#[[3]])& /@ pr);
 
                  mvec = (#[[2]])& /@ prsnew;
+                 Print["Masses to find exact:",mvec];
                  extop=Select[topos,(GetMasses[#[[2]]] == mvec)&];
                  
                  If[Length[extop] != 1,
@@ -555,7 +560,10 @@ MapOnAuxExact[ks_,legs_,prs_,{auxtop_,vertcons_},OptionsPattern[]] :=
                  (* First match is ok *)
                  Print["Not Exact match"];
                  GetMassesSig[pr_]:= List @@ ((If[#[[3]] =!= 0,1,0])& /@ pr);
+
+                 (*                                                          *)
                  (* Get signature for massless lines m1,m2,0,m4 -> {1,1,0,1} *)
+                 (*                                                          *)
                  mvec = (If[#[[2]] =!= 0,1,0])& /@ prsnew;
                  extop=Select[topos,(GetMassesSig[#[[2]]] == mvec)&];
                  Print["Masses ",topos];
@@ -563,7 +571,9 @@ MapOnAuxExact[ks_,legs_,prs_,{auxtop_,vertcons_},OptionsPattern[]] :=
                  If[Length[extop] == 0,
                     Print["Mass distribution matching pattern not found!"];
                     Return[{Null,Null}],
+                    (*      *)
                     (* ELSE *)
+                    (*      *)
                     Block[{top,pv,auxpropnums,vcrules,redvcr},
                           extop = extop[[1]];
                           top = Head[extop[[2]]];
@@ -573,7 +583,7 @@ MapOnAuxExact[ks_,legs_,prs_,{auxtop_,vertcons_},OptionsPattern[]] :=
                           vcrules = vertcons[top];
                           redvcr  = (Part[#[[1]],Flatten[auxpropnums]]==#[[2]])& /@ (Select[vcrules, (MatchQ[Union[Delete[#[[1]],auxpropnums]], {} | {0}])&]);
 
-                          (* Print["RCVCR ",redvcr]; *)
+                          Print["RCVCR ",redvcr];
                           subWrap = If[Length[legs] >= 2,(# -> wr[#])& /@ legs[[1;;-2]],{}];
                           
                           (* 
@@ -635,7 +645,7 @@ MapOnAuxExact[ks_,legs_,prs_,{auxtop_,vertcons_},OptionsPattern[]] :=
 (********************************************************************************)
 (**                                                                            **)
 (**   Map on AUX topology removing dots before and keep set of exernal         **)
-(**   moment untuched                                                          **)
+(**   moment untouched                                                          **)
 (**                                                                            **)
 (********************************************************************************)
 
@@ -653,34 +663,70 @@ Options[MapCorrectLegs]={
 
 
 MapCorrectLegs[ks_,legs_,prsWdots_,{auxtop_,vertcons_},OptionsPattern[]]:=
-    Module[{rdTo,rdFrom,prsNoDots,mInt,mExt,dsub},
+    Module[{rdTo,rdFrom,prsNoDots,mInt,mExt,dsub,msub,msys,msol,invmsol},
            (* Print[RemoveDots[prsWdots]]; *)
            (* Print[prsWdots]; *)
            
            (* Removing dots *)
            {rdTo,rdFrom} = RemoveDots[prsWdots];
+           Print["RDTO:",rdTo];
            prsNoDots     = Last /@ rdFrom;
            
            (* Mapping rules *)
            {mInt,mExt} = MapOnAuxExact[ks,legs,prsNoDots,{auxtop,vertcons},ExactMatch->OptionValue[ExactMatch]];
            
+           Print["MINT:",mInt];
+
            If[mInt === Null || mExt === Null,
               Return[Missing[prsNoDots]];
               ,
               
               dsub={};
-              MapIndexed[AppendTo[dsub,d[#2[[1]]] -> #1[[2,1;;2]]]&, mInt];
+              msub={};
+              msys= List @@({#1[[1,2]],#1[[2,3]]}& /@mInt);
+              MapIndexed[(AppendTo[dsub,d[#2[[1]]] -> #1[[2,1;;2]]](* ; *)
+                          (* AppendTo[msub,#1[[1,2]] -> #1[[2,3]]] *))&, mInt];
               
-              Print["dsub:",dsub];
-              Return[Head[mInt] @@ (rdTo/.dsub)];
+              (* Solve system (aux massses=masses to map)          *)
+              (* if single unique solution we have correct mapping *)
+              msol=Solve[(#[[1]]==#[[2]])& /@ msys,Last/@msys];
+              invmsol = (#[[2]]->#[[1]])& /@ First[msol];
+              Print["Masses 2 :", invmsol];
+              If[msol==={},
+                 Print["No such masses distribution found ", Last/@msys];
+                 Return[Missing[prsNoDots]];
+                 ,   
+                 Print["Masses:",(#)&/@mInt];
+                 Print["dsub:",dsub];
+                 (* Print["MRD:",]; *)
+                 rdTo=Map[(#[[1]]->(#[[2]]/.invmsol))&,rdTo];
+                 Return[Head[mInt] @@ (rdTo/.dsub)];
+                ]
              ];
            
           ]
 
 
-MapOnAux[ks_,legs_,prsWdots_,{auxtop_,vertcons_},OptionsPattern[]] :=
-    Module[{mapres,subZeroSplit,splitProps,splitLHS},
+(************************************************************
+
+   Return substitution list in form
+   {k1, M1} -> {{p[1],ak1}, aM1}
+     where: 
+     k1,M1   - initial momentum and mass to be mapped,
+     p[1]    - momentum from AuxTopo with numbering
+     ak1,aM1 - momentum and mass in AuxTopo
+
+************************************************************)
+
+MapOnAux[ks_,legs_,prsWlegs_,{auxtop_,vertcons_},OptionsPattern[]] :=
+    Module[{mapres,subZeroSplit,splitProps,splitLHS,prsWdots,zeroExtMom},
            
+           Print["[0] - removing legs"];
+           zeroExtMom = (#->0)&/@ legs;
+           prsWdots = Select[prsWlegs, (#[[1]]/.zeroExtMom) =!= 0&];
+
+           Print[prsWdots];
+           (* We remove all propagators which become zero when all external momentum nullified *)
            Print["[1] - removing dots"];
            
            

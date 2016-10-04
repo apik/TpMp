@@ -651,8 +651,8 @@ struct DBFactory
 std::map< std::string, size_t > DBFactory::directory;
 std::vector< QgrafSQL > DBFactory::vdb;
 
-
-void LoadQGRAF(const unsigned char * str,const int len) 
+// We add flag to overwrite existing DB
+void LoadQGRAF(const unsigned char * str,const int len, int overwritedb) 
 {
 
   std::string fname;
@@ -667,7 +667,7 @@ void LoadQGRAF(const unsigned char * str,const int len)
   mprintln(std::string("fname ") + sql_path.string());
   
   
-  if(!boost::filesystem::exists(sql_path))
+  if(!boost::filesystem::exists(sql_path) || overwritedb == 1)
     {
       // Check if YAML file exists
       if(boost::filesystem::exists( yaml_path.string() ))
@@ -829,18 +829,45 @@ void GetDia(int n, int dbnum)
           MLPutSymbol  (stdlink, "factor");
           MLPutInteger (stdlink, dr.factor);
           // 
-          MLPutFunction(stdlink, "List", dr.props.size() + dr.legs.size());
+          MLPutFunction(stdlink, "Rule", 2);
+          MLPutSymbol  (stdlink, "props");
+          MLPutFunction(stdlink, "List", dr.props.size());
           for(std::vector<Prop>::const_iterator pi = dr.props.begin(); pi != dr.props.end(); ++pi)
+            {
+              
+              MLPutFunction(stdlink, "List", 4);
+              MLPutFunction(stdlink, "Rule", 2);
+              MLPutInteger (stdlink, pi->u);
+              MLPutInteger (stdlink, pi->v);
+              // Field type and name
+              MLPutFunction(stdlink, pi->type.c_str(), 1);
+              MLPutSymbol  (stdlink, pi->field.c_str());
+              // Momentum
+              MLPutFunction(stdlink, "ToExpression", 1);
+              MLPutString(stdlink, pi->mom.c_str());              
+              // Field mass
+              MLPutFunction(stdlink, "M", 1);
+              MLPutSymbol  (stdlink, pi->field.c_str());
+            }
+          // 
+          MLPutFunction(stdlink, "Rule", 2);
+          MLPutSymbol  (stdlink, "legs");
+          MLPutFunction(stdlink, "List", dr.legs.size());
+          for(std::vector<Leg>::const_iterator li = dr.legs.begin(); li != dr.legs.end(); ++li)
             {
               
               MLPutFunction(stdlink, "List", 2);
               MLPutFunction(stdlink, "Rule", 2);
-              MLPutInteger (stdlink, pi->u);
-              MLPutInteger (stdlink, pi->v);
-              MLPutFunction(stdlink, pi->type.c_str(), 1);
-              MLPutSymbol  (stdlink, pi->field.c_str());
+              MLPutInteger (stdlink, li->u);
+              MLPutInteger (stdlink, li->v);
+              MLPutFunction(stdlink, li->type.c_str(), 1);
+              MLPutSymbol  (stdlink, li->field.c_str());
               
             }
+          // 
+          MLPutFunction(stdlink, "Rule", 2);
+          MLPutSymbol  (stdlink, "verts");
+          MLPutFunction(stdlink, "List", dr.legs.size());
           for(std::vector<Leg>::const_iterator li = dr.legs.begin(); li != dr.legs.end(); ++li)
             {
               
@@ -854,12 +881,12 @@ void GetDia(int n, int dbnum)
             }
 
           // List of momentums
-          MLPutFunction(stdlink, "List", dr.props.size());
-          for(std::vector<Prop>::const_iterator pi = dr.props.begin(); pi != dr.props.end(); ++pi)
-            {
-              MLPutFunction(stdlink, "ToExpression", 1);
-              MLPutString(stdlink, pi->mom.c_str());              
-            }
+          // MLPutFunction(stdlink, "List", dr.props.size());
+          // for(std::vector<Prop>::const_iterator pi = dr.props.begin(); pi != dr.props.end(); ++pi)
+          //   {
+          //     MLPutFunction(stdlink, "ToExpression", 1);
+          //     MLPutString(stdlink, pi->mom.c_str());              
+          //   }
 
  
         }
