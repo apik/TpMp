@@ -55,6 +55,28 @@ struct Vert
   // True if is interanl line
   std::vector<bool> internal;
   std::vector<int> ids;
+
+  // Serialize to string <TYPE>[<l/p>(<LINEID>),...]
+  inline std::string toStr() const
+  {
+    std::stringstream s;
+    s << type << "[";
+
+    for(size_t i = 0; i < internal.size(); i++)
+      {
+        if(internal[i])
+          s << "p(" << ids[i] << ")";
+        else
+          s << "l(" << ids[i] << ")";
+        if(i != internal.size() - 1)
+          s << ",";
+      }
+    s << "]";
+    return s.str();
+  }
+
+  void fromStr(size_t, const std::string&);
+
 };
 
 
@@ -86,7 +108,17 @@ public:
 
   void propStr(const std::string&);
 
-  inline std::string legStr() const
+  inline std::string vertStr() const
+  {
+    std::stringstream s;
+    for(std::vector<Vert>::const_iterator vi = verts.begin(); vi != verts.end(); ++vi)
+        s << vi->toStr() << ";";
+    return s.str();
+  }
+
+  void vertStr(const std::string&);
+
+  inline std::string legsStr() const
   {
     std::stringstream s;
     for(std::vector<Leg>::const_iterator li = legs.begin(); li != legs.end(); ++li)
@@ -94,7 +126,7 @@ public:
     return s.str();
   }
 
-  void legStr(const std::string&);
+  void legsStr(const std::string&);
 
 };
 #endif  // __TYPES_HPP__

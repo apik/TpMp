@@ -206,43 +206,44 @@ public:
 
 private:
 
-  bool insertSingleDia(const DiagramRecord& dia)
-  {
-    sqlite3_stmt *insertStmt;
-    // cout << "Creating Insert Statement" << endl;
+  // bool insertSingleDia(const DiagramRecord& dia)
+  // {
+  //   sqlite3_stmt *insertStmt;
+  //   // cout << "Creating Insert Statement" << endl;
     
     
-    std::stringstream insertQuery;
-    insertQuery << "INSERT INTO DIAGRAMS (ID,L,P,FACTOR,PROPS,LEGS,VERTS)"
-      " VALUES (" 
-                << dia.id << ", " 
-                << dia.loops << ", " 
-                << dia.props.size() << ", " 
-                << dia.factor << ", " 
-                << quoted(dia.propStr()) << ", " 
-                << quoted(dia.legStr()) << ", " 
-                << quoted("vertsxx") << ");";
+  //   std::stringstream insertQuery;
+  //   insertQuery << "INSERT INTO DIAGRAMS (ID,L,P,FACTOR,PROPS,LEGS,VERTS)"
+  //     " VALUES (" 
+  //               << dia.id << ", " 
+  //               << dia.loops << ", " 
+  //               << dia.props.size() << ", " 
+  //               << dia.factor << ", " 
+  //               << quoted(dia.propStr()) << ", " 
+  //               << quoted(dia.legStr()) << ", " 
+  //               << quoted(dia.vertStr()) << ");";
     
 
 
-    sqlite3_prepare(dbPtr, insertQuery.str().c_str(), insertQuery.str().size(), &insertStmt, NULL);
-    // cout << "Stepping Insert Statement" << endl;
-    if (sqlite3_step(insertStmt) != SQLITE_DONE) 
-      mprintln("Didn't Insert Item!");
-    return true;
-  }
+  //   sqlite3_prepare(dbPtr, insertQuery.str().c_str(), insertQuery.str().size(), &insertStmt, NULL);
+  //   // cout << "Stepping Insert Statement" << endl;
+  //   if (sqlite3_step(insertStmt) != SQLITE_DONE) 
+  //     mprintln("Didn't Insert Item!");
+  //   return true;
+  // }
 
   // stmt - compiled SQL request
   bool insertSingleDiaBind(const DiagramRecord& dia, sqlite3_stmt *stmt)
   {
     
-    int rc = sqlite3_bind_int(stmt, 1, dia.id); 
-    rc = sqlite3_bind_int(stmt, 2, dia.loops); 
-    rc = sqlite3_bind_int(stmt, 3, dia.props.size()); 
-    rc = sqlite3_bind_int(stmt, 4, dia.factor); 
+    int rc; 
+    rc = sqlite3_bind_int (stmt, 1, dia.id); 
+    rc = sqlite3_bind_int (stmt, 2, dia.loops); 
+    rc = sqlite3_bind_int (stmt, 3, dia.props.size()); 
+    rc = sqlite3_bind_int (stmt, 4, dia.factor); 
     rc = sqlite3_bind_text(stmt, 5, dia.propStr().c_str(), -1, SQLITE_TRANSIENT); 
-    rc = sqlite3_bind_text(stmt, 6, dia.legStr().c_str(), -1, SQLITE_TRANSIENT); 
-    rc = sqlite3_bind_text(stmt, 7, "vertsxx", -1, SQLITE_TRANSIENT); 
+    rc = sqlite3_bind_text(stmt, 6, dia.legsStr().c_str(), -1, SQLITE_TRANSIENT); 
+    rc = sqlite3_bind_text(stmt, 7, dia.vertStr().c_str(), -1, SQLITE_TRANSIENT); 
 
 
     sqlite3_step(stmt);
@@ -413,7 +414,8 @@ public:
     dr.factor = sqlite3_column_int(stmt, 2);
     
     dr.propStr(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3)));
-    dr.legStr(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4)));
+    dr.legsStr(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4)));
+    dr.vertStr(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 5)));
     // this->id         = id;
     // this->first_name = string(sqlite3_column_text(stmt, 0));
     // this->last_name  = string(sqlite3_column_text(stmt, 1));
@@ -815,7 +817,7 @@ void GetDia(int n, int dbnum)
       DiagramRecord dr;
       if(qsql.select(n, dr))
         {
-          MLPutFunction(stdlink, "Dia", 5);
+          MLPutFunction(stdlink, "Dia", 6);
           // 
           MLPutFunction(stdlink, "Rule", 2);
           MLPutSymbol  (stdlink, "id");
@@ -867,17 +869,13 @@ void GetDia(int n, int dbnum)
           // 
           MLPutFunction(stdlink, "Rule", 2);
           MLPutSymbol  (stdlink, "verts");
-          MLPutFunction(stdlink, "List", dr.legs.size());
-          for(std::vector<Leg>::const_iterator li = dr.legs.begin(); li != dr.legs.end(); ++li)
+          MLPutFunction(stdlink, "List", dr.verts.size());
+          for(std::vector<Vert>::const_iterator vi = dr.verts.begin(); vi != dr.verts.end(); ++vi)
             {
               
-              MLPutFunction(stdlink, "List", 2);
-              MLPutFunction(stdlink, "Rule", 2);
-              MLPutInteger (stdlink, li->u);
-              MLPutInteger (stdlink, li->v);
-              MLPutFunction(stdlink, li->type.c_str(), 1);
-              MLPutSymbol  (stdlink, li->field.c_str());
-              
+              MLPutFunction (stdlink, vi->type.c_str(), vi->ids.size());
+              for(int i = 0; i < vi->ids.size(); i++)
+                MLPutInteger (stdlink, vi->internal[i] ? vi->ids[i] : -1*(vi->ids[i]));
             }
 
           // List of momentums

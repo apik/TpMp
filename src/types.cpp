@@ -61,6 +61,44 @@ void Leg::fromStr(size_t nid, const std::string& s)
 
 }
 
+void Vert::fromStr(size_t nid, const std::string& s)
+{
+  id = nid;
+  size_t start = 0;
+  size_t end   = s.find('['); 
+  std::cout << "TYPE = " << s.substr(start,end) << std::endl;
+  type = s.substr(start,end - start);
+
+  start = end + 1;
+
+  while((end = s.find(',', start)) != std::string::npos)
+    {
+      std::cout << " vert leg----->>>" << s.substr(start,end - start) << std::endl;
+      // <l/p>(<n>)
+      std::string linef = s.substr(start,end - start);
+      internal.push_back(linef[0] == 'p');
+      
+      std::cout << "num: " << atoi(linef.substr(2, linef.size()-3).c_str()) << std::endl;
+
+      ids.push_back(atoi(linef.substr(2, linef.size()-3).c_str()));
+      start = end + 1;
+    }
+  // Adding last ray
+  
+  // start = end + 1;
+  end = s.find(']', start);
+
+  std::cout << " vert ray----->>>" << s.substr(start,end - start) << std::endl;  
+
+  std::string linef = s.substr(start,end - start);
+  internal.push_back(linef[0] == 'p');
+  
+  std::cout << "num: " << atoi(linef.substr(2, linef.size()-3).c_str()) << std::endl;
+  
+  ids.push_back(atoi(linef.substr(2, linef.size()-3).c_str()));
+  
+}
+
 DiagramRecord::DiagramRecord(YAML::Node n)
 {
   id     = n.begin()->first.as<int>();
@@ -110,23 +148,22 @@ DiagramRecord::DiagramRecord(YAML::Node n)
 
   std::cout << n.begin()->second["verts"] << std::endl;
 
+  // Filling vertices array
   for (YAML::const_iterator it = n.begin()->second["verts"].begin(); it != n.begin()->second["verts"].end(); ++it) 
     {
       Vert v;
+      // vertex number
       v.id     = it->first.as<int>();
+      // type ex. FFV
       v.type   = it->second["struct"].as<std::string>();
 
-      std::cout << "vlen: " << it->second["fields"].size() << std::endl;
-
-      std::vector<std::string> ftypes;
+      std::vector<std::string> fields;
       for (YAML::const_iterator fit = it->second["fields"].begin(); 
            fit != it->second["fields"].end(); ++fit) 
         {
-          ftypes.push_back(fit->as<std::string>());
+          fields.push_back(fit->as<std::string>());
           std::cout << fit->as<std::string>() << std::endl;
         }
-
-      std::vector<int> fids;
       
       for (YAML::const_iterator fit = it->second["props"].begin(); 
            fit != it->second["props"].end(); ++fit) 
@@ -172,7 +209,7 @@ void DiagramRecord::propStr(const std::string& s)
   std::cout << "REMINDER  " << s.substr(start, end) << std::endl;;        
 }
 
-void DiagramRecord::legStr(const std::string& s)
+void DiagramRecord::legsStr(const std::string& s)
 {
   std::cout << "Reconstructing props from " << s << std::endl;
   
@@ -185,6 +222,27 @@ void DiagramRecord::legStr(const std::string& s)
       Leg l;
       l.fromStr(legs.size() + 1, s.substr(start, end - start));
       legs.push_back(l);
+        
+      start = end + 1;
+      end = s.find(';', start);
+    }
+
+  std::cout << "REMINDER  " << s.substr(start, end) << std::endl;;        
+}
+
+void DiagramRecord::vertStr(const std::string& s)
+{
+  std::cout << "Reconstructing verts from " << s << std::endl;
+  
+  size_t start = 0;
+  size_t end = s.find(';');
+  while (end != std::string::npos)
+    {
+      std::cout << s.substr(start, end - start) << std::endl;
+
+      Vert v;
+      v.fromStr(verts.size() + 1, s.substr(start, end - start));
+      verts.push_back(v);
         
       start = end + 1;
       end = s.find(';', start);
