@@ -18,7 +18,6 @@
 :Evaluate:  LoadDB::usage     = "Load SQL DB."
 :Evaluate:  GetDia::usage     = "Load dia from DB."
 :Evaluate:  GetDiaGraph::usage = "Get graph info for diagram."
-:Evaluate:  Draw::usage  = "Plot graph."
 :Evaluate:  WithField::usage  = "Find diagrams with field."
 :Evaluate:  WithFieldType::usage  = "Find diagrams with specified field type (F,M,S,V,C,A)."
 :Evaluate:  FermionFlow::usage    = "Get fermion flow information"
@@ -35,13 +34,6 @@
 :Evaluate:  Dia::usage  = "Rest diagram without tadpoles head."
 :Evaluate:  Sbridge::usage  = "Singulare bridge edge head."
 
-:Evaluate:  F::usage  = "Fermion field."
-:Evaluate:  M::usage  = "Majorana fermion field."
-:Evaluate:  S::usage  = "Scalar field."
-:Evaluate:  V::usage  = "Vector field."
-:Evaluate:  C::usage  = "Ghost field."
-:Evaluate:  A::usage  = "Aux field."
-
 
 // Error messages
 :Evaluate:  LoadQGRAF::dbexists = "Error: SQL db with name `1` already exists.";
@@ -55,44 +47,6 @@
 // Mathematica part
 
 
-:Evaluate: Draw[Dia[_,_,_,ll_,_]] :=     
-    GraphPlot[ll, DirectedEdges -> True, MultiedgeStyle -> 0.2, 
-              ImagePadding -> 0, EdgeRenderingFunction -> (DressEdge[#1, #3] &),
-              VertexLabeling -> False, Method -> "SpringEmbedding"];
-
-:Evaluate: Draw[Subgraphs[ll___]] := 
-    GraphPlot[#[[1]]/.{Tad->List,Dia->List,Sbridge->List}, DirectedEdges -> True, MultiedgeStyle -> 0.2, 
-              ImagePadding -> 0, EdgeRenderingFunction -> (DressEdge[#1, #3] &),
-              VertexLabeling -> False, Method -> "SpringEmbedding"]& /@ List[ll];
-
-:Evaluate: DressEdge[e_, l_] := 
-    Module[{},
-           Switch[Head[l],
-                  C, {Red, Dotted, 
-                      Arrow[e], {Line[e], 
-                                      Inset[l[[1]], Mean[e], Automatic, Automatic, Automatic,
-                                            Background -> White]}},
-                  F, {Blue, Thick, 
-                      Arrow[e], {Line[e], 
-                                      Inset[l[[1]], Mean[e], Automatic, Automatic, Automatic,
-                                            Background -> White]}},
-                  M, {Gray, Thick, 
-                      Arrow[e], {Line[e], 
-                                      Inset[l[[1]], Mean[e], Automatic, Automatic, Automatic,
-                                            Background -> White]}},
-                  S, {AbsoluteThickness[2], Dashed, Red, 
-                      Arrow[e], {Line[e], 
-                                      Inset[l[[1]], Mean[e], Automatic, Automatic, Automatic, 
-                                            Background -> White]}},
-                  V, {Green, DotDashed, 
-                      Arrow[e], {Line[e], 
-                                      Inset[l[[1]], Mean[e], Automatic, Automatic, Automatic, 
-                                            Background -> White]}},
-                  A, {Black, DotDashed, 
-                      Arrow[e], {Line[e], 
-                                      Inset[l[[1]], Mean[e], Automatic, Automatic, Automatic,
-                                            Background -> White]}}]
-          ];
 
 
 // C++ part

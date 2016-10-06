@@ -1,3 +1,18 @@
+BeginPackage["TpMp`MMA`Mapping`"];
+
+Unprotect["TpMp`MMA`Mapping`*"];
+ClearAll["TpMp`MMA`Mapping`*", "TpMp`MMA`Mapping`Private`*"];
+
+(******************************************************************************)
+
+ToposFromAux::usage = "Generate subtopologies from list of auxiliary topologies";
+MapOnAux::usage = "";
+x::usage = "Feynamn parameters";
+
+Begin["`Private`"];
+
+(*******************************************************************************)
+
 (* A.Smirnov and A.Pak routines *)
 
 ClearAll[UF];
@@ -765,3 +780,16 @@ MapOnAux[ks_,legs_,prsWlegs_,{auxtop_,vertcons_},OptionsPattern[]] :=
              ]
            
           ]
+
+(*******************************************************************************)
+
+Scan[SetAttributes[#, {Protected, ReadProtected}]&,
+     Select[Symbol /@ Names["TpMp`MMA`Mapping`*"], Head[#] === Symbol &]];
+
+End[];
+EndPackage[];
+
+
+
+
+
