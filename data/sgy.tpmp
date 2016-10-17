@@ -3,13 +3,13 @@
 *
 
 * propagators
- [ q, Q, - ; type='F']
+ [ q, Q, - ; type='F', anti=(-1,1)]
 
- [ g, g, + ; type='V']
+ [ g, g, + ; type='V', anti=(0)]
 
- [ gg, GG, - ; type='C']
+ [ gg, GG, - ; type='C', anti=(-1,1)]
 
- [ h, h, + ; type='S']
+ [ h, h, + ; type='S', anti=(0)]
 
 * vertices
 
